@@ -16,21 +16,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # --- uv のインストール -------------------------------------------------------
-# 公式インストールスクリプト経由で最新版を取得
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin:${PATH}"
+# /usr/local/bin に配置して全ユーザーから使えるようにする
+RUN curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR=/usr/local/bin sh
+
+# --- 非 root ユーザーの作成 --------------------------------------------------
+# --dangerously-skip-permissions は root では動作しないため非 root が必須
+RUN useradd -m -u 1000 appuser
 
 # --- 作業ディレクトリ --------------------------------------------------------
 WORKDIR /app
+RUN chown appuser:appuser /app
+
+USER appuser
 
 # --- 依存インストール（レイヤーキャッシュ最適化）---------------------------
 # pyproject.toml と uv.lock だけ先にコピーしてインストール
-COPY pyproject.toml uv.lock ./
+COPY --chown=appuser:appuser pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
 # --- アプリケーションコード --------------------------------------------------
-COPY src/ ./src/
-COPY skills/ ./skills/
+COPY --chown=appuser:appuser src/ ./src/
+COPY --chown=appuser:appuser skills/ ./skills/
 
 # --- 環境変数 ----------------------------------------------------------------
 # ANTHROPIC_API_KEY は実行時に渡す（ハードコード禁止）

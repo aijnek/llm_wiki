@@ -73,12 +73,33 @@ WIKI_ROOT=/path/to/wiki uv run python src/entrypoint.py "質問"
 cd agent-runtime
 docker build -t ai-agents-web-runtime .
 
-# コンテナ実行（ANTHROPIC_API_KEY を渡す）
+# コンテナ実行（ANTHROPIC_API_KEY を渡す場合）
+# -v で ai-agents/ ディレクトリをコンテナの /mnt にマウントする（必須）
 docker run --rm \
   -e ANTHROPIC_API_KEY=sk-ant-... \
-  -e WIKI_ROOT=/mnt \
+  -v "$(pwd)/../../ai-agents:/mnt" \
+  ai-agents-web-runtime "ReActとは何か"
+
+# コンテナ実行（CLAUDE_CODE_OAUTH_TOKEN を渡す場合）
+# Claude.ai の認証トークンを使って AgentCore Runtime を動かす方法。
+# トークンは `claude /oauth-token` または ~/.claude/.credentials.json から取得できる。
+docker run --rm \
+  -e CLAUDE_CODE_OAUTH_TOKEN="$(cat ~/.claude/.credentials.json | python3 -c 'import sys,json; print(json.load(sys.stdin)["claudeAiOauth"]["accessToken"])')" \
+  -v "$(pwd)/../../ai-agents:/mnt" \
+  ai-agents-web-runtime "ReActとは何か"
+
+# 環境変数をファイルで管理する場合（.env は .gitignore に追加すること）
+# .env の例:
+#   CLAUDE_CODE_OAUTH_TOKEN=eyJ...
+docker run --rm \
+  --env-file .env \
+  -v "$(pwd)/../../ai-agents:/mnt" \
   ai-agents-web-runtime "ReActとは何か"
 ```
+
+> **認証方式の優先順位**  
+> `ANTHROPIC_API_KEY` と `CLAUDE_CODE_OAUTH_TOKEN` はどちらか一方を設定すれば動作する。  
+> 両方設定した場合、Claude Agent SDK は `ANTHROPIC_API_KEY` を優先して使用する。
 
 ### スキルの更新
 
