@@ -116,6 +116,7 @@ docker run --rm \
 | フェーズ | 内容 | ディレクトリ |
 |---|---|---|
 | 1 (完了) | scaffold + agent-runtime ローカル検証 | agent-runtime/ |
+| 1.5 (完了) | BedrockAgentCoreApp ラッパー導入・ローカル HTTP 疎通確認 | agent-runtime/ |
 | 2 | AWS CDK infra (S3, AgentCore, VPC) | infra/ |
 | 3 | API Lambda + WebSocket | api/ |
 | 4 | Next.js Frontend | frontend/ |

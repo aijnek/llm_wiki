@@ -43,6 +43,10 @@ COPY --chown=appuser:appuser skills/ ./skills/
 # WIKI_ROOT はコンテナ内の S3 Files BYO マウントポイントに合わせて上書き可能
 ENV WIKI_ROOT=/mnt
 
+# --- ポート ------------------------------------------------------------------
+# HTTP サーバーモード（AgentCore Runtime）は 8080 を使用
+EXPOSE 8080
+
 # --- エントリポイント --------------------------------------------------------
 ENTRYPOINT ["uv", "run", "python", "src/entrypoint.py"]
 # デフォルト引数なし（引数は docker run ... "プロンプト" で渡す）

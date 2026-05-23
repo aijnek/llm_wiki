@@ -14,6 +14,7 @@ import sys
 from collections.abc import AsyncIterator
 from pathlib import Path
 
+from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from claude_agent_sdk import (
     AssistantMessage,
     ClaudeAgentOptions,
@@ -21,6 +22,8 @@ from claude_agent_sdk import (
     TextBlock,
     query,
 )
+
+app = BedrockAgentCoreApp()
 
 # ---------------------------------------------------------------------------
 # 定数
@@ -132,6 +135,30 @@ async def run_agent(prompt: str) -> AsyncIterator[str]:
 
 
 # ---------------------------------------------------------------------------
+# AgentCore Runtime エントリポイント（HTTP POST /invocations）
+# ---------------------------------------------------------------------------
+
+@app.entrypoint
+async def agent_invocation(payload: dict, context) -> dict:
+    """
+    BedrockAgentCoreApp が受け取る HTTP ハンドラ。
+    ペイロード形式: {"input": {"prompt": "..."}} または {"prompt": "..."}
+    """
+    input_data = payload.get("input", {})
+    prompt = input_data.get("prompt", payload.get("prompt", ""))
+
+    if not prompt:
+        return {"output": {"error": "prompt が空です"}}
+
+    stream = await run_agent(prompt)
+    chunks: list[str] = []
+    async for chunk in stream:
+        chunks.append(chunk)
+
+    return {"output": {"message": "".join(chunks)}}
+
+
+# ---------------------------------------------------------------------------
 # CLI エントリポイント
 # ---------------------------------------------------------------------------
 
@@ -172,4 +199,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1:
+        # 引数あり → CLI モード（後方互換）
+        main()
+    else:
+        # 引数なし → HTTP サーバーモード（AgentCore Runtime / ローカル疎通テスト）
+        app.run()
