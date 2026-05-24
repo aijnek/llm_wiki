@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -49,6 +50,12 @@ export default function ChatPage() {
         <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           AI Agents Wiki
         </h1>
+        <Link
+          href="/ingest"
+          className="ml-4 text-sm text-blue-500 hover:text-blue-700 underline"
+        >
+          Ingest
+        </Link>
         <div className="flex items-center gap-1.5 ml-auto text-xs text-gray-500 dark:text-gray-400">
           <span className={`h-2 w-2 rounded-full ${STATUS_COLOR[status]}`} />
           {STATUS_LABEL[status]}

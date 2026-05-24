@@ -33,6 +33,7 @@ WikiApiStack(
     app,
     "WikiApiStack",
     runtime_arn=runtime.runtime_arn,
+    raw_bucket=infra.raw_bucket,
     env=env,
 )
 

@@ -6,6 +6,7 @@ from aws_cdk import (
     aws_apigatewayv2_integrations as apigwv2_integrations,
     aws_iam as iam,
     aws_lambda as lambda_,
+    aws_s3 as s3,
 )
 from constructs import Construct
 
@@ -17,6 +18,7 @@ class WikiApiStack(Stack):
         construct_id: str,
         *,
         runtime_arn: str,
+        raw_bucket: s3.IBucket,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -105,4 +107,48 @@ class WikiApiStack(Stack):
             "ProcessorFnName",
             value=processor_fn.function_name,
             export_name="WikiProcessorFnName",
+        )
+
+        # ------------------------------------------------------------------ #
+        # Presign Lambda — presigned PUT URL を発行して raw_bucket に直接アップロード
+        # ------------------------------------------------------------------ #
+        presign_fn = lambda_.Function(
+            self,
+            "PresignFn",
+            runtime=lambda_.Runtime.PYTHON_3_12,
+            handler="handler.presign_handler",
+            code=code,
+            timeout=Duration.seconds(10),
+            environment={
+                "RAW_BUCKET_NAME": raw_bucket.bucket_name,
+            },
+        )
+        raw_bucket.grant_put(presign_fn)
+
+        # HTTP API（CORS 設定済み）
+        http_api = apigwv2.HttpApi(
+            self,
+            "HttpApi",
+            api_name="ai-agents-wiki-http",
+            cors_preflight=apigwv2.CorsPreflightOptions(
+                allow_origins=["*"],
+                allow_methods=[apigwv2.CorsHttpMethod.POST, apigwv2.CorsHttpMethod.OPTIONS],
+                allow_headers=["Content-Type"],
+                max_age=Duration.hours(1),
+            ),
+        )
+
+        http_api.add_routes(
+            path="/presign-upload",
+            methods=[apigwv2.HttpMethod.POST],
+            integration=apigwv2_integrations.HttpLambdaIntegration(
+                "PresignInt", presign_fn
+            ),
+        )
+
+        CfnOutput(
+            self,
+            "HttpApiUrl",
+            value=http_api.url or "",
+            export_name="WikiHttpApiUrl",
         )

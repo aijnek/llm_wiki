@@ -87,6 +87,12 @@ class WikiInfraStack(Stack):
             removal_policy=RemovalPolicy.RETAIN,
             block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
             encryption=s3.BucketEncryption.S3_MANAGED,
+            cors=[s3.CorsRule(
+                allowed_methods=[s3.HttpMethods.PUT],
+                allowed_origins=["*"],
+                allowed_headers=["Content-Type"],
+                max_age=3000,
+            )],
         )
 
         # ------------------------------------------------------------------ #

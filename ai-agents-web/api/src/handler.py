@@ -9,6 +9,7 @@ import boto3
 REGION = os.environ.get("AWS_REGION", "ap-northeast-1")
 RUNTIME_ARN = os.environ.get("RUNTIME_ARN", "")
 PROCESSOR_FUNCTION_NAME = os.environ.get("PROCESSOR_FUNCTION_NAME", "")
+RAW_BUCKET_NAME = os.environ.get("RAW_BUCKET_NAME", "")
 
 
 def websocket_handler(event, context):
@@ -79,6 +80,42 @@ def processor_handler(event, context):
             _post(connection_id, domain, stage, {"type": "error", "message": str(e)})
         except Exception:
             pass
+
+
+def presign_handler(event, context):
+    """HTTP API handler — POST /presign-upload"""
+    try:
+        body = json.loads(event.get("body") or "{}")
+        filename = body.get("filename", "").strip()
+        content_type = body.get("content_type", "application/octet-stream").strip()
+    except (json.JSONDecodeError, AttributeError):
+        return _http_response(400, {"error": "invalid JSON"})
+
+    if not filename or "/" in filename or "\\" in filename or filename.startswith("."):
+        return _http_response(400, {"error": "invalid filename"})
+
+    s3 = boto3.client("s3", region_name=REGION)
+    url = s3.generate_presigned_url(
+        "put_object",
+        Params={
+            "Bucket": RAW_BUCKET_NAME,
+            "Key": filename,
+            "ContentType": content_type,
+        },
+        ExpiresIn=900,
+    )
+    return _http_response(200, {"url": url})
+
+
+def _http_response(status: int, body: dict) -> dict:
+    return {
+        "statusCode": status,
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+        },
+        "body": json.dumps(body, ensure_ascii=False),
+    }
 
 
 def _post(connection_id: str, domain: str, stage: str, data: dict) -> None:
