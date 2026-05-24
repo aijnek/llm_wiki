@@ -66,7 +66,7 @@ class WikiRuntimeStack(Stack):
                 "WIKI_ROOT": "/mnt",
                 "ANTHROPIC_API_KEY_SSM_NAME": "/ai-agents-wiki/anthropic-api-key",
             },
-            description="AI Agents Wiki - Bedrock AgentCore Runtime v2",
+            description="AI Agents Wiki - Bedrock AgentCore Runtime rev:" + (self.node.try_get_context("image-revision") or "unknown"),
         )
 
         self.runtime_arn = runtime.attr_agent_runtime_arn

@@ -121,7 +121,34 @@ docker run --rm \
 | 2.5 | AgentCore Runtime CDK 定義・S3 Files BYO・ECR push スクリプト | infra/ | ✅ 完了 |
 | 2.6 | cdk deploy・S3 初回 sync・AWS 上での疎通確認 | infra/ | ✅ 完了 |
 | 3 | API Lambda + WebSocket | api/ | ✅ 完了 |
-| 4 | Next.js Frontend | frontend/ | 🔜 次フェーズ |
+| 4.1 | Next.js scaffold + Chat UI（WebSocket 接続・プロンプト送受信） | frontend/ | ✅ 完了 |
+| 4.2 | Ingest UI + presigned URL エンドポイント | frontend/, api/ | ✅ 完了 |
+| 5 | WebSocket ストリーミング | api/, agent-runtime/ | 🔜 次フェーズ |
+| 6 | マルチターン会話 | api/, agent-runtime/, frontend/, infra/ | 📋 計画中 |
+| 7 | Wiki 閲覧（S3 Markdown 一覧 + Obsidian リンク レンダラ） | frontend/, api/ | 未着手 |
+| 8 | Amplify Hosting デプロイ（CDK + 環境変数設定） | infra/, frontend/ | 未着手 |
+
+### Phase 5: WebSocket ストリーミング
+
+AgentCore Runtime からのチャンクをリアルタイムで WebSocket に転送する。
+
+| サブフェーズ | 内容 |
+|---|---|
+| 5.1 | `BedrockAgentCoreApp` のストリーミングレスポンス対応を調査（`@app.entrypoint` が AsyncGenerator / StreamingResponse を返せるか確認） |
+| 5.2 | `entrypoint.py` の `agent_invocation` を NDJSON 逐次レスポンス対応に変更（チャンクを1行ずつ yield） |
+| 5.3 | `processor_handler` をレスポンス行単位読み込み → チャンクごと WS 送信（`{"type":"message","content":"..."}` × N → `{"type":"done"}`）に変更 |
+| 5.4 | CDK・Lambda 更新（依存ライブラリ追加が必要な場合）・deploy・エンドツーエンド疎通確認 |
+
+### Phase 6: マルチターン会話
+
+会話セッションを維持し、前のやりとりを踏まえた回答を実現する。
+
+| サブフェーズ | 内容 |
+|---|---|
+| 6.1 | DynamoDB にセッションテーブル追加（CDK）。項目: `{sessionId (PK), messages: [{role, content}], ttl}` |
+| 6.2 | フロントエンドでセッション ID 生成・WS メッセージに含める（`{ prompt, sessionId }`）。「新しい会話」ボタン追加 |
+| 6.3 | `websocket_handler` → `processor_handler` でセッション ID を受け渡し、DynamoDB から履歴をロード・保存 |
+| 6.4 | Claude Agent SDK の `query` が `messages` パラメータをサポートするか調査。`run_agent` / `agent_invocation` をマルチターン対応に変更（非対応の場合は system prompt への履歴埋め込みで代替） |
 
 ## infra/ — CDK (Python / uv)
 
