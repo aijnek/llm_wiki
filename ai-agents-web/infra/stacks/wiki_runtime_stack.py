@@ -64,8 +64,9 @@ class WikiRuntimeStack(Stack):
                 "WIKI_BUCKET": wiki_bucket.bucket_name,
                 "RAW_BUCKET": raw_bucket.bucket_name,
                 "WIKI_ROOT": "/mnt",
+                "ANTHROPIC_API_KEY_SSM_NAME": "/ai-agents-wiki/anthropic-api-key",
             },
-            description="AI Agents Wiki - Bedrock AgentCore Runtime",
+            description="AI Agents Wiki - Bedrock AgentCore Runtime v2",
         )
 
         CfnOutput(

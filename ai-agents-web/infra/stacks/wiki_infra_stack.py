@@ -216,6 +216,14 @@ class WikiInfraStack(Stack):
             resources=["*"],
         ))
 
+        # SSM Parameter Store から ANTHROPIC_API_KEY を読み取る権限
+        agentcore_role.add_to_policy(iam.PolicyStatement(
+            actions=["ssm:GetParameter"],
+            resources=[
+                f"arn:{self.partition}:ssm:{self.region}:{self.account}:parameter/ai-agents-wiki/*"
+            ],
+        ))
+
         # ------------------------------------------------------------------ #
         # Outputs
         # ------------------------------------------------------------------ #

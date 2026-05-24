@@ -14,6 +14,8 @@ import sys
 from collections.abc import AsyncIterator
 from pathlib import Path
 
+import boto3
+
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from claude_agent_sdk import (
     AssistantMessage,
@@ -24,6 +26,26 @@ from claude_agent_sdk import (
 )
 
 app = BedrockAgentCoreApp()
+
+
+def _load_api_key_from_ssm() -> None:
+    """ANTHROPIC_API_KEY_SSM_NAME が設定されている場合、SSM から API キーを取得して環境変数に設定する。
+    sk-ant-oat01- で始まる OAuth トークンは CLAUDE_CODE_OAUTH_TOKEN に設定する。
+    """
+    ssm_name = os.environ.get("ANTHROPIC_API_KEY_SSM_NAME")
+    if not ssm_name:
+        return
+    if os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("CLAUDE_CODE_OAUTH_TOKEN"):
+        return
+    region = os.environ.get("AWS_DEFAULT_REGION", "ap-northeast-1")
+    ssm = boto3.client("ssm", region_name=region)
+    resp = ssm.get_parameter(Name=ssm_name, WithDecryption=True)
+    value = resp["Parameter"]["Value"].strip()
+    if value.startswith("sk-ant-oat"):
+        os.environ["CLAUDE_CODE_OAUTH_TOKEN"] = value
+    else:
+        os.environ["ANTHROPIC_API_KEY"] = value
+
 
 # ---------------------------------------------------------------------------
 # 定数
@@ -144,6 +166,7 @@ async def agent_invocation(payload: dict, context) -> dict:
     BedrockAgentCoreApp が受け取る HTTP ハンドラ。
     ペイロード形式: {"input": {"prompt": "..."}} または {"prompt": "..."}
     """
+    _load_api_key_from_ssm()
     input_data = payload.get("input", {})
     prompt = input_data.get("prompt", payload.get("prompt", ""))
 

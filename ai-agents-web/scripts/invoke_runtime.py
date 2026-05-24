@@ -51,36 +51,34 @@ def main() -> None:
     session = boto3.Session(profile_name=AWS_PROFILE, region_name=REGION)
     cf_client = session.client("cloudformation")
 
-    # --- Runtime ID を CloudFormation から取得 ---
-    print("=== Getting AgentCore Runtime ID from CloudFormation ===")
+    # --- Runtime ARN を CloudFormation から取得 ---
+    print("=== Getting AgentCore Runtime ARN from CloudFormation ===")
     try:
-        runtime_id = get_cfn_output(cf_client, STACK_NAME_RUNTIME, "WikiAgentCoreRuntimeId")
+        runtime_arn = get_cfn_output(cf_client, STACK_NAME_RUNTIME, "AgentCoreRuntimeArn")
     except KeyError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         print("WikiRuntimeStack がデプロイ済みか確認してください。", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Runtime ID: {runtime_id}")
+    print(f"Runtime ARN: {runtime_arn}")
 
     # --- AgentCore Runtime を呼び出す ---
-    # bedrock-agentcore-runtime は regional endpoint を使う
-    runtime_client = session.client(
-        "bedrock-agentcore-runtime",
-        endpoint_url=f"https://bedrock-agentcore-runtime.{REGION}.amazonaws.com",
-    )
+    runtime_client = session.client("bedrock-agentcore")
 
-    session_id = str(uuid.uuid4())
-    payload = json.dumps({"prompt": args.prompt})
+    runtime_session_id = str(uuid.uuid4())
+    payload = json.dumps({"prompt": args.prompt}).encode("utf-8")
 
     print(f"\nPrompt: {args.prompt}")
-    print(f"Session ID: {session_id}")
+    print(f"Session ID: {runtime_session_id}")
     print("\n=== Invoking AgentCore Runtime ===")
 
     try:
         response = runtime_client.invoke_agent_runtime(
-            agentRuntimeId=runtime_id,
-            sessionId=session_id,
+            agentRuntimeArn=runtime_arn,
+            runtimeSessionId=runtime_session_id,
             payload=payload,
+            contentType="application/json",
+            accept="application/json",
         )
     except Exception as e:
         print(f"\nERROR: Runtime 呼び出しに失敗しました: {e}", file=sys.stderr)
@@ -90,20 +88,22 @@ def main() -> None:
             "  2. ECR に :latest イメージが push 済み\n"
             "  3. AgentCore Runtime の Status が READY になっている\n"
             "     (AWS Console > Bedrock > AgentCore > Runtimes で確認)\n"
-            "  4. boto3 のバージョンが bedrock-agentcore-runtime に対応している\n"
+            "  4. boto3 のバージョンが bedrock-agentcore に対応している\n"
             "     (pip install --upgrade boto3)",
             file=sys.stderr,
         )
         sys.exit(1)
 
-    # レスポンスを表示
+    # レスポンスを表示（response['response'] は StreamingBody）
     print("\n=== Response ===")
-    body = response.get("body")
-    if hasattr(body, "read"):
-        body = body.read().decode("utf-8")
+    stream = response.get("response")
+    if hasattr(stream, "read"):
+        body = stream.read().decode("utf-8")
+    else:
+        body = str(stream)
 
     try:
-        parsed = json.loads(body) if isinstance(body, str) else body
+        parsed = json.loads(body)
         output = parsed.get("output", {})
         message = output.get("message", body)
         print(message)
