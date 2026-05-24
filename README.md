@@ -24,4 +24,6 @@ AIエージェント分野のパーソナルナレッジベース本体。Claude
 
 ### [ai-agents-web/](ai-agents-web/)
 
-`ai-agents/` のウェブサービス版。`ai-agents/` は一切変更せず、スキル定義をAWS Bedrock AgentCore Runtime上で動かす。フェーズ1（agent-runtimeローカル検証）完了済み。
+`ai-agents/` のウェブサービス版。`ai-agents/` は一切変更せず、スキル定義をAWS Bedrock AgentCore Runtime上で動かす。
+
+**現在の状態（Phase 2.6 完了）**: AgentCore Runtime が ap-northeast-1 にデプロイ済み。S3 Files BYO で wiki/raw をマウントし、`./scripts/verify.sh --invoke` による AWS 上の疎通確認済み（6/6 passed）。次フェーズ: Lambda + WebSocket API（Phase 3）。
