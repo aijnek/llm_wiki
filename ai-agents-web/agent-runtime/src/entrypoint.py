@@ -181,25 +181,27 @@ def _resolve_prompt(prompt: str) -> str:
 
 
 @app.entrypoint
-async def agent_invocation(payload: dict, context) -> dict:
+async def agent_invocation(payload: dict, context):
     """
     BedrockAgentCoreApp が受け取る HTTP ハンドラ。
     ペイロード形式: {"input": {"prompt": "..."}} または {"prompt": "..."}
+
+    async generator として yield することで BedrockAgentCoreApp が SSE ストリーミングで送出する。
+    ProcessorFn が iter_lines() でチャンクを受け取り WebSocket に流すことで、
+    アイドルタイマーがリセットされ続け WebSocket タイムアウトを回避できる。
     """
     _load_api_key_from_ssm()
     input_data = payload.get("input", {})
     prompt = input_data.get("prompt", payload.get("prompt", ""))
 
     if not prompt:
-        return {"output": {"error": "prompt が空です"}}
+        yield {"type": "error", "text": "prompt が空です"}
+        return
 
     prompt = _resolve_prompt(prompt)
     stream = await run_agent(prompt)
-    chunks: list[str] = []
     async for chunk in stream:
-        chunks.append(chunk)
-
-    return {"output": {"message": "".join(chunks)}}
+        yield {"type": "chunk", "text": chunk}
 
 
 # ---------------------------------------------------------------------------

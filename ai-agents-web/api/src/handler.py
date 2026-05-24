@@ -7,6 +7,7 @@ import uuid
 
 import boto3
 from botocore.config import Config
+from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -67,7 +68,7 @@ def processor_handler(event, context):
         runtime_client = boto3.client(
             "bedrock-agentcore",
             region_name=REGION,
-            config=Config(read_timeout=560, connect_timeout=10),  # Lambda timeout 600s より短く設定
+            config=Config(read_timeout=800, connect_timeout=10),  # ストリーミング中のツール実行を考慮して延長
         )
         logger.info("invoking AgentCore Runtime arn=%s", RUNTIME_ARN)
         response = runtime_client.invoke_agent_runtime(
@@ -78,16 +79,21 @@ def processor_handler(event, context):
             accept="application/json",
         )
 
-        raw = response["response"].read().decode("utf-8")
-        logger.info("raw response (%d bytes): %r", len(raw), raw[:500])
-        try:
-            parsed = json.loads(raw)
-            message = parsed.get("output", {}).get("message", raw)
-        except (json.JSONDecodeError, AttributeError):
-            message = raw
-
-        logger.info("posting message (%d chars) then done", len(message))
-        _post(connection_id, domain, stage, {"type": "message", "content": message})
+        # SSE ストリームを逐次読み込んでチャンクごとに WebSocket へ転送する。
+        # これにより WebSocket のアイドルタイムアウト（10分）を継続リセットできる。
+        chunk_count = 0
+        for line in response["response"].iter_lines():
+            line_str = line.decode("utf-8").strip()
+            if not line_str.startswith("data: "):
+                continue
+            try:
+                data = json.loads(line_str[6:])
+            except json.JSONDecodeError:
+                continue
+            if data.get("type") == "chunk" and data.get("text"):
+                _post(connection_id, domain, stage, {"type": "message", "content": data["text"]})
+                chunk_count += 1
+        logger.info("streaming done: %d chunks posted", chunk_count)
         _post(connection_id, domain, stage, {"type": "done"})
         logger.info("DONE")
 
@@ -136,11 +142,17 @@ def _http_response(status: int, body: dict) -> dict:
 
 
 def _post(connection_id: str, domain: str, stage: str, data: dict) -> None:
-    boto3.client(
-        "apigatewaymanagementapi",
-        endpoint_url=f"https://{domain}/{stage}",
-        region_name=REGION,
-    ).post_to_connection(
-        ConnectionId=connection_id,
-        Data=json.dumps(data, ensure_ascii=False).encode("utf-8"),
-    )
+    try:
+        boto3.client(
+            "apigatewaymanagementapi",
+            endpoint_url=f"https://{domain}/{stage}",
+            region_name=REGION,
+        ).post_to_connection(
+            ConnectionId=connection_id,
+            Data=json.dumps(data, ensure_ascii=False).encode("utf-8"),
+        )
+    except ClientError as e:
+        if e.response["Error"]["Code"] == "GoneException":
+            logger.warning("WebSocket connection gone connection_id=%s", connection_id)
+        else:
+            raise
