@@ -40,7 +40,7 @@ class WikiRuntimeStack(Stack):
                 network_mode="VPC",
                 network_mode_config=bedrockagentcore.CfnRuntime.VpcConfigProperty(
                     security_groups=[runtime_sg.security_group_id],
-                    subnets=[s.subnet_id for s in vpc.isolated_subnets],
+                    subnets=[s.subnet_id for s in vpc.private_subnets],
                 ),
             ),
             environment_variables={
