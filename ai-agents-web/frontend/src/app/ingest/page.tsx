@@ -110,9 +110,10 @@ export default function IngestPage() {
     <div className="flex h-screen flex-col bg-white dark:bg-gray-900">
       <header className="flex items-center gap-3 border-b border-gray-200 dark:border-gray-700 px-5 py-3">
         <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Ingest</h1>
+        <span className="ml-auto text-xs text-gray-400 font-mono">WS: {wsStatus}</span>
         <Link
           href="/"
-          className="ml-auto text-sm text-blue-500 hover:text-blue-700 underline"
+          className="text-sm text-blue-500 hover:text-blue-700 underline"
         >
           ← チャットに戻る
         </Link>
@@ -176,10 +177,18 @@ export default function IngestPage() {
             <div className="flex items-center gap-2 mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
               {isIngested ? (
                 <span className="text-green-600">✓</span>
-              ) : (
+              ) : ingestTriggeredRef.current ? (
                 <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-yellow-400" />
+              ) : (
+                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-gray-300" />
               )}
-              <span>{isIngested ? "Ingest 完了" : "Ingest 処理中..."}</span>
+              <span>
+                {isIngested
+                  ? "Ingest 完了"
+                  : ingestTriggeredRef.current
+                  ? "Ingest 処理中..."
+                  : `WS 接続待機中 (${wsStatus})...`}
+              </span>
             </div>
             {ingestMsg?.content && (
               <div className="prose prose-sm dark:prose-invert max-w-none">

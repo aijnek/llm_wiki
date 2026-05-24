@@ -15,8 +15,14 @@ RUNTIME_DIR="${SCRIPT_DIR}/../agent-runtime"
 INFRA_DIR="${SCRIPT_DIR}/../infra"
 ECR_URI="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/${REPO_NAME}"
 
-# git SHA を image-revision として使用（git 管理外なら timestamp にフォールバック）
-IMAGE_REVISION="$(git -C "${SCRIPT_DIR}" rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S)"
+# git SHA を image-revision として使用
+# 未コミット変更がある場合は SHA-dirty-<時刻> にして差分を強制検出させる
+SHA="$(git -C "${SCRIPT_DIR}" rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S)"
+if git -C "${SCRIPT_DIR}" diff-index --quiet HEAD -- 2>/dev/null; then
+  IMAGE_REVISION="${SHA}"
+else
+  IMAGE_REVISION="${SHA}-dirty-$(date +%H%M%S)"
+fi
 
 # ECR ログイン
 echo "=== Logging in to ECR ==="
