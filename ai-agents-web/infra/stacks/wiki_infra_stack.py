@@ -6,6 +6,7 @@ from aws_cdk import (
     aws_ecr as ecr,
     aws_iam as iam,
     aws_s3 as s3,
+    aws_s3files as s3files,
 )
 from constructs import Construct
 
@@ -16,12 +17,8 @@ class WikiInfraStack(Stack):
 
         # ------------------------------------------------------------------ #
         # VPC
-        # Private isolated subnets + S3 Gateway Endpoint（S3 Files BYO 用）
-        #
-        # AgentCore Runtime が Anthropic API への outbound を自前ネットワークで
-        # 処理する場合は nat_gateways=0 のままで良い。
-        # もし VPC 経由のインターネットアクセスが必要と判明したら
-        # nat_gateways=1 に変更すること（~$32/月 のコスト増）。
+        # Private subnets + NAT Gateway（AgentCore Runtime の Anthropic API outbound 用）
+        # + S3 Gateway Endpoint（S3 API / S3 Files NFS 同期を無料ルートに載せる）
         # ------------------------------------------------------------------ #
         self.vpc = vpc = ec2.Vpc(
             self,
@@ -42,7 +39,6 @@ class WikiInfraStack(Stack):
             ],
         )
 
-        # S3 VPC Gateway Endpoint（無料。private subnet から S3 に到達するために必須）
         vpc.add_gateway_endpoint(
             "S3GatewayEndpoint",
             service=ec2.GatewayVpcEndpointAwsService.S3,
@@ -53,12 +49,27 @@ class WikiInfraStack(Stack):
             self,
             "RuntimeSg",
             vpc=vpc,
-            description="Bedrock AgentCore Runtime — AI Agents Wiki",
+            description="Bedrock AgentCore Runtime - AI Agents Wiki",
             allow_all_outbound=True,
         )
 
+        # S3 Files マウントターゲット用セキュリティグループ
+        # NFS (TCP 2049) を RuntimeSg からのみ許可する
+        s3files_sg = ec2.SecurityGroup(
+            self,
+            "S3FilesSg",
+            vpc=vpc,
+            description="S3 Files mount targets - AI Agents Wiki",
+            allow_all_outbound=False,
+        )
+        s3files_sg.add_ingress_rule(
+            peer=runtime_sg,
+            connection=ec2.Port.tcp(2049),
+            description="NFS from AgentCore Runtime",
+        )
+
         # ------------------------------------------------------------------ #
-        # S3 バケット
+        # S3 バケット（versioning 必須 — S3 Files がバージョン管理を使う）
         # ------------------------------------------------------------------ #
         self.wiki_bucket = wiki_bucket = s3.Bucket(
             self,
@@ -89,30 +100,101 @@ class WikiInfraStack(Stack):
         )
 
         # ------------------------------------------------------------------ #
-        # S3 Access Points（S3 Files BYO — コンテナ内ファイルシステムマウント用）
-        # VPC 制限付きで作成し、Runtime が動く private subnet からのみアクセス可能にする
+        # S3 Files BYO — IAM ロール
+        # elasticfilesystem.amazonaws.com が S3 バケットと EventBridge を操作するために使う
+        # S3 Files は内部で S3 ↔ ファイルシステムの同期に EventBridge ルールを作成する
         # ------------------------------------------------------------------ #
-        wiki_ap = s3.CfnAccessPoint(
+        s3files_role = iam.Role(
+            self,
+            "S3FilesRole",
+            assumed_by=iam.ServicePrincipal("elasticfilesystem.amazonaws.com"),
+            description="S3 Files sync role for AI Agents Wiki",
+        )
+        for bucket in [wiki_bucket, raw_bucket]:
+            s3files_role.add_to_policy(iam.PolicyStatement(
+                actions=["s3:ListBucket*"],
+                resources=[bucket.bucket_arn],
+            ))
+            s3files_role.add_to_policy(iam.PolicyStatement(
+                actions=[
+                    "s3:AbortMultipartUpload",
+                    "s3:DeleteObject",
+                    "s3:GetObject*",
+                    "s3:List*",
+                    "s3:PutObject*",
+                ],
+                resources=[bucket.arn_for_objects("*")],
+            ))
+        # S3 Files が "DO-NOT-DELETE-S3-Files-*" プレフィックスの EventBridge ルールを管理する
+        s3files_role.add_to_policy(iam.PolicyStatement(
+            actions=[
+                "events:DeleteRule",
+                "events:DisableRule",
+                "events:EnableRule",
+                "events:PutRule",
+                "events:PutTargets",
+                "events:RemoveTargets",
+            ],
+            resources=[
+                f"arn:{self.partition}:events:{self.region}:{self.account}:rule/DO-NOT-DELETE-S3-Files-*"
+            ],
+        ))
+
+        # ------------------------------------------------------------------ #
+        # S3 Files ファイルシステム + マウントターゲット + アクセスポイント
+        # wiki バケット用
+        # ------------------------------------------------------------------ #
+        wiki_fs = s3files.CfnFileSystem(
+            self,
+            "WikiFileSystem",
+            bucket=wiki_bucket.bucket_arn,
+            role_arn=s3files_role.role_arn,
+            accept_bucket_warning=True,
+        )
+
+        for i, subnet in enumerate(vpc.private_subnets):
+            s3files.CfnMountTarget(
+                self,
+                f"WikiMountTarget{i}",
+                file_system_id=wiki_fs.attr_file_system_id,
+                subnet_id=subnet.subnet_id,
+                security_groups=[s3files_sg.security_group_id],
+            )
+
+        wiki_ap = s3files.CfnAccessPoint(
             self,
             "WikiAccessPoint",
-            bucket=wiki_bucket.bucket_name,
-            name="wiki-access",
-            vpc_configuration=s3.CfnAccessPoint.VpcConfigurationProperty(
-                vpc_id=vpc.vpc_id,
-            ),
+            file_system_id=wiki_fs.attr_file_system_id,
         )
-        self.wiki_access_point_arn = wiki_ap.attr_arn
+        self.wiki_access_point_arn = wiki_ap.attr_access_point_arn
 
-        raw_ap = s3.CfnAccessPoint(
+        # ------------------------------------------------------------------ #
+        # S3 Files ファイルシステム + マウントターゲット + アクセスポイント
+        # raw バケット用
+        # ------------------------------------------------------------------ #
+        raw_fs = s3files.CfnFileSystem(
+            self,
+            "RawFileSystem",
+            bucket=raw_bucket.bucket_arn,
+            role_arn=s3files_role.role_arn,
+            accept_bucket_warning=True,
+        )
+
+        for i, subnet in enumerate(vpc.private_subnets):
+            s3files.CfnMountTarget(
+                self,
+                f"RawMountTarget{i}",
+                file_system_id=raw_fs.attr_file_system_id,
+                subnet_id=subnet.subnet_id,
+                security_groups=[s3files_sg.security_group_id],
+            )
+
+        raw_ap = s3files.CfnAccessPoint(
             self,
             "RawAccessPoint",
-            bucket=raw_bucket.bucket_name,
-            name="raw-access",
-            vpc_configuration=s3.CfnAccessPoint.VpcConfigurationProperty(
-                vpc_id=vpc.vpc_id,
-            ),
+            file_system_id=raw_fs.attr_file_system_id,
         )
-        self.raw_access_point_arn = raw_ap.attr_arn
+        self.raw_access_point_arn = raw_ap.attr_access_point_arn
 
         # ------------------------------------------------------------------ #
         # IAM ロール（AgentCore Runtime が引き受ける）
@@ -121,15 +203,21 @@ class WikiInfraStack(Stack):
             self,
             "AgentCoreRole",
             assumed_by=iam.ServicePrincipal("bedrock-agentcore.amazonaws.com"),
-            description="Execution role for AI Agents Wiki — Bedrock AgentCore Runtime",
+            description="Execution role for AI Agents Wiki - Bedrock AgentCore Runtime",
         )
         wiki_bucket.grant_read_write(agentcore_role)
         raw_bucket.grant_read_write(agentcore_role)
         ecr_repo.grant_pull(agentcore_role)
 
+        # S3 Files マウントに必要な権限
+        # AgentCore Runtime が S3 Files ファイルシステムをマウントする際に使用する
+        agentcore_role.add_to_policy(iam.PolicyStatement(
+            actions=["s3files:*"],
+            resources=["*"],
+        ))
+
         # ------------------------------------------------------------------ #
         # Outputs
-        # AgentCore Runtime 定義（Phase 2.5）で参照する値をすべてここに出力する
         # ------------------------------------------------------------------ #
         CfnOutput(self, "VpcId", value=vpc.vpc_id, export_name="WikiVpcId")
         CfnOutput(
@@ -171,12 +259,12 @@ class WikiInfraStack(Stack):
         CfnOutput(
             self,
             "WikiAccessPointArn",
-            value=wiki_ap.attr_arn,
+            value=wiki_ap.attr_access_point_arn,
             export_name="WikiAccessPointArn",
         )
         CfnOutput(
             self,
             "RawAccessPointArn",
-            value=raw_ap.attr_arn,
+            value=raw_ap.attr_access_point_arn,
             export_name="WikiRawAccessPointArn",
         )

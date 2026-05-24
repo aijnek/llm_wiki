@@ -31,7 +31,7 @@ class WikiRuntimeStack(Stack):
         runtime = bedrockagentcore.CfnRuntime(
             self,
             "AgentCoreRuntime",
-            agent_runtime_name="ai-agents-wiki-runtime",
+            agent_runtime_name="ai_agents_wiki_runtime",
             role_arn=execution_role.role_arn,
             agent_runtime_artifact=bedrockagentcore.CfnRuntime.AgentRuntimeArtifactProperty(
                 container_configuration=bedrockagentcore.CfnRuntime.ContainerConfigurationProperty(
@@ -65,7 +65,7 @@ class WikiRuntimeStack(Stack):
                 "RAW_BUCKET": raw_bucket.bucket_name,
                 "WIKI_ROOT": "/mnt",
             },
-            description="AI Agents Wiki — Bedrock AgentCore Runtime",
+            description="AI Agents Wiki - Bedrock AgentCore Runtime",
         )
 
         CfnOutput(
