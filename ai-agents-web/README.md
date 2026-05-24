@@ -117,9 +117,47 @@ docker run --rm \
 |---|---|---|
 | 1 (完了) | scaffold + agent-runtime ローカル検証 | agent-runtime/ |
 | 1.5 (完了) | BedrockAgentCoreApp ラッパー導入・ローカル HTTP 疎通確認 | agent-runtime/ |
-| 2 | AWS CDK infra (S3, AgentCore, VPC) | infra/ |
+| 2 (完了) | AWS CDK infra — VPC / S3 / ECR / IAM | infra/ |
+| 2.5 | AgentCore Runtime 定義 + ECR push + cdk deploy | infra/ |
 | 3 | API Lambda + WebSocket | api/ |
 | 4 | Next.js Frontend | frontend/ |
+
+## infra/ — CDK (Python / uv)
+
+```
+infra/
+├── app.py              ← CDK アプリエントリポイント
+├── cdk.json            ← "app": "uv run python app.py"
+├── pyproject.toml      ← uv 管理
+└── stacks/
+    └── wiki_infra_stack.py  ← VPC / S3 / ECR / IAM
+```
+
+### デプロイ手順
+
+```bash
+cd infra
+uv sync
+
+# 初回のみ: CDK bootstrap
+AWS_PROFILE=dev CDK_DEFAULT_ACCOUNT=<account> CDK_DEFAULT_REGION=ap-northeast-1 \
+  cdk bootstrap
+
+# デプロイ
+AWS_PROFILE=dev CDK_DEFAULT_ACCOUNT=<account> CDK_DEFAULT_REGION=ap-northeast-1 \
+  cdk deploy
+```
+
+### 生成されるリソース
+
+| リソース | 説明 |
+|---|---|
+| VPC (10.0.0.0/16) | 2 AZ × private isolated subnet。NAT なし |
+| S3 VPC Gateway Endpoint | VPC → S3 を無料・プライベート経路で接続 |
+| S3: WikiBucket | wiki/ 永続化。versioning 有効 |
+| S3: RawBucket | raw/ 原本。versioning 有効 |
+| ECR: ai-agents-wiki-runtime | agent-runtime Docker イメージ置き場 |
+| IAM Role: AgentCoreRole | AgentCore Runtime 実行ロール（S3 RW + ECR pull）|
 
 ## 既存 ai-agents/ との関係
 
