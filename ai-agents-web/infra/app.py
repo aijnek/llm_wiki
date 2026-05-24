@@ -2,6 +2,7 @@ import os
 
 import aws_cdk as cdk
 
+from stacks.wiki_api_stack import WikiApiStack
 from stacks.wiki_infra_stack import WikiInfraStack
 from stacks.wiki_runtime_stack import WikiRuntimeStack
 
@@ -14,7 +15,7 @@ env = cdk.Environment(
 
 infra = WikiInfraStack(app, "WikiInfraStack", env=env)
 
-WikiRuntimeStack(
+runtime = WikiRuntimeStack(
     app,
     "WikiRuntimeStack",
     ecr_repo=infra.ecr_repo,
@@ -25,6 +26,13 @@ WikiRuntimeStack(
     raw_bucket=infra.raw_bucket,
     wiki_access_point_arn=infra.wiki_access_point_arn,
     raw_access_point_arn=infra.raw_access_point_arn,
+    env=env,
+)
+
+WikiApiStack(
+    app,
+    "WikiApiStack",
+    runtime_arn=runtime.runtime_arn,
     env=env,
 )
 

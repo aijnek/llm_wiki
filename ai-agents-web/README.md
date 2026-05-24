@@ -120,8 +120,8 @@ docker run --rm \
 | 2 | AWS CDK infra — VPC / S3 / ECR / IAM | infra/ | ✅ 完了 |
 | 2.5 | AgentCore Runtime CDK 定義・S3 Files BYO・ECR push スクリプト | infra/ | ✅ 完了 |
 | 2.6 | cdk deploy・S3 初回 sync・AWS 上での疎通確認 | infra/ | ✅ 完了 |
-| 3 | API Lambda + WebSocket | api/ | 🔜 次フェーズ |
-| 4 | Next.js Frontend | frontend/ | 🔜 |
+| 3 | API Lambda + WebSocket | api/ | ✅ 完了 |
+| 4 | Next.js Frontend | frontend/ | 🔜 次フェーズ |
 
 ## infra/ — CDK (Python / uv)
 
@@ -132,7 +132,8 @@ infra/
 ├── pyproject.toml      ← uv 管理
 └── stacks/
     ├── wiki_infra_stack.py   ← VPC / S3 / ECR / IAM（WikiInfraStack）
-    └── wiki_runtime_stack.py ← AgentCore Runtime（WikiRuntimeStack）
+    ├── wiki_runtime_stack.py ← AgentCore Runtime（WikiRuntimeStack）
+    └── wiki_api_stack.py     ← Lambda + WebSocket API（WikiApiStack）
 ```
 
 ### ⚠️ CDK Bootstrap のセキュリティ注意事項
@@ -150,9 +151,9 @@ admin 相当のプロファイルで一回だけ実行すること。Bootstrap �
 
 詳細: `infra/CLAUDE.md`
 
-### フルデプロイ（Phase 2.6）
+### フルデプロイ（Phase 3 時点）
 
-ECR repo 作成 → Docker push → Runtime 定義の順序依存を解決するため、`deploy.sh` で一括実行する。
+ECR repo 作成 → Docker push → Runtime → API の順序依存を解決するため、`deploy.sh` で一括実行する。
 
 ```bash
 # 初回のみ: CDK bootstrap（admin プロファイルで実行）
@@ -160,7 +161,7 @@ cd infra
 AWS_PROFILE=<admin> CDK_DEFAULT_ACCOUNT=650251713555 CDK_DEFAULT_REGION=ap-northeast-1 \
   uv run cdk bootstrap
 
-# Step 1: フルデプロイ（infra → ECR push → runtime の順）
+# Step 1: フルデプロイ（infra → ECR push → runtime → api の順）
 ./scripts/deploy.sh
 
 # Step 2: ローカル wiki/raw → S3 初回 sync
@@ -171,6 +172,9 @@ AWS_PROFILE=<admin> CDK_DEFAULT_ACCOUNT=650251713555 CDK_DEFAULT_REGION=ap-north
 
 # Step 4: Runtime 呼び出し疎通確認（--invoke で実際に LLM を呼ぶ）
 ./scripts/verify.sh --invoke
+
+# Step 5: WebSocket API 疎通確認
+cd infra && uv run python ../scripts/verify_ws.py
 ```
 
 S3 の逆方向 sync（S3 → ローカル）:
@@ -194,6 +198,10 @@ AWS_PROFILE=dev CDK_DEFAULT_ACCOUNT=650251713555 CDK_DEFAULT_REGION=ap-northeast
 # Step 3: AgentCore Runtime
 AWS_PROFILE=dev CDK_DEFAULT_ACCOUNT=650251713555 CDK_DEFAULT_REGION=ap-northeast-1 \
   uv run cdk deploy WikiRuntimeStack --require-approval never
+
+# Step 4: Lambda + WebSocket API
+AWS_PROFILE=dev CDK_DEFAULT_ACCOUNT=650251713555 CDK_DEFAULT_REGION=ap-northeast-1 \
+  uv run cdk deploy WikiApiStack --require-approval never
 ```
 
 ### 生成されるリソース
@@ -210,6 +218,9 @@ AWS_PROFILE=dev CDK_DEFAULT_ACCOUNT=650251713555 CDK_DEFAULT_REGION=ap-northeast
 | WikiInfraStack | IAM Role: AgentCoreRole | AgentCore Runtime 実行ロール（S3 RW + ECR pull + SSM read + s3files:*）|
 | WikiInfraStack | IAM Role: S3FilesRole | S3 Files sync ロール（elasticfilesystem.amazonaws.com 用）|
 | WikiRuntimeStack | AgentCore Runtime: ai_agents_wiki_runtime | /mnt/wiki・/mnt/raw を S3 Files BYO マウント済み |
+| WikiApiStack | Lambda: OrchestratorFn | WebSocket メッセージを受けて ProcessorFn を非同期 invoke |
+| WikiApiStack | Lambda: ProcessorFn | AgentCore Runtime を呼び出し WS に結果を返送（タイムアウト 10 分） |
+| WikiApiStack | API GW WebSocket: ai-agents-wiki-ws | wss://... エンドポイント（prod ステージ） |
 
 > **NAT Gateway**: Runtime コンテナから Anthropic API（外部）への outbound のために NAT Gateway 1 台を常時起動（約 $32/月）。
 

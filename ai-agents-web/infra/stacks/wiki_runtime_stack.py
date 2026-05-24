@@ -69,6 +69,8 @@ class WikiRuntimeStack(Stack):
             description="AI Agents Wiki - Bedrock AgentCore Runtime v2",
         )
 
+        self.runtime_arn = runtime.attr_agent_runtime_arn
+
         CfnOutput(
             self,
             "AgentCoreRuntimeArn",

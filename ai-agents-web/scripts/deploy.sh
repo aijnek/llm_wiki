@@ -49,4 +49,11 @@ cd "${INFRA_DIR}"
 env "${CDK_ENV[@]}" uv run cdk deploy WikiRuntimeStack --require-approval never
 
 echo ""
+echo "============================================================"
+echo " Step 4: WikiApiStack deploy (Lambda + WebSocket API)"
+echo "============================================================"
+cd "${INFRA_DIR}"
+env "${CDK_ENV[@]}" uv run cdk deploy WikiApiStack --require-approval never
+
+echo ""
 echo "All done."
