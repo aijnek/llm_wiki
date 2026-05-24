@@ -123,7 +123,7 @@ docker run --rm \
 | 3 | API Lambda + WebSocket | api/ | ✅ 完了 |
 | 4.1 | Next.js scaffold + Chat UI（WebSocket 接続・プロンプト送受信） | frontend/ | ✅ 完了 |
 | 4.2 | Ingest UI + presigned URL エンドポイント | frontend/, api/ | ✅ 完了 |
-| 5 | WebSocket ストリーミング | api/, agent-runtime/ | 🔜 次フェーズ |
+| 5 | WebSocket ストリーミング | api/, agent-runtime/ | ✅ 完了 |
 | 6 | マルチターン会話 | api/, agent-runtime/, frontend/, infra/ | 📋 計画中 |
 | 7 | Wiki 閲覧（S3 Markdown 一覧 + Obsidian リンク レンダラ） | frontend/, api/ | 未着手 |
 | 8 | Amplify Hosting デプロイ（CDK + 環境変数設定） | infra/, frontend/ | 未着手 |
