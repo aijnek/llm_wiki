@@ -23,7 +23,7 @@ class WikiInfraStack(Stack):
         # もし VPC 経由のインターネットアクセスが必要と判明したら
         # nat_gateways=1 に変更すること（~$32/月 のコスト増）。
         # ------------------------------------------------------------------ #
-        vpc = ec2.Vpc(
+        self.vpc = vpc = ec2.Vpc(
             self,
             "Vpc",
             max_azs=2,
@@ -44,7 +44,7 @@ class WikiInfraStack(Stack):
         )
 
         # AgentCore Runtime 用セキュリティグループ
-        runtime_sg = ec2.SecurityGroup(
+        self.runtime_sg = runtime_sg = ec2.SecurityGroup(
             self,
             "RuntimeSg",
             vpc=vpc,
@@ -55,7 +55,7 @@ class WikiInfraStack(Stack):
         # ------------------------------------------------------------------ #
         # S3 バケット
         # ------------------------------------------------------------------ #
-        wiki_bucket = s3.Bucket(
+        self.wiki_bucket = wiki_bucket = s3.Bucket(
             self,
             "WikiBucket",
             versioned=True,
@@ -64,7 +64,7 @@ class WikiInfraStack(Stack):
             encryption=s3.BucketEncryption.S3_MANAGED,
         )
 
-        raw_bucket = s3.Bucket(
+        self.raw_bucket = raw_bucket = s3.Bucket(
             self,
             "RawBucket",
             versioned=True,
@@ -76,7 +76,7 @@ class WikiInfraStack(Stack):
         # ------------------------------------------------------------------ #
         # ECR リポジトリ（agent-runtime Docker イメージ）
         # ------------------------------------------------------------------ #
-        ecr_repo = ecr.Repository(
+        self.ecr_repo = ecr_repo = ecr.Repository(
             self,
             "RuntimeRepo",
             repository_name="ai-agents-wiki-runtime",
@@ -86,7 +86,7 @@ class WikiInfraStack(Stack):
         # ------------------------------------------------------------------ #
         # IAM ロール（AgentCore Runtime が引き受ける）
         # ------------------------------------------------------------------ #
-        agentcore_role = iam.Role(
+        self.agentcore_role = agentcore_role = iam.Role(
             self,
             "AgentCoreRole",
             assumed_by=iam.ServicePrincipal("bedrock-agentcore.amazonaws.com"),
