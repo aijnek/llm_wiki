@@ -111,6 +111,17 @@ docker run --rm \
 
 その後 Docker イメージを再ビルドすること。
 
+## 本番リソース（ap-northeast-1）
+
+| リソース | 値 |
+|---|---|
+| WebSocket API | `wss://9p1a5dhtjd.execute-api.ap-northeast-1.amazonaws.com/prod` |
+| HTTP API | `https://f7vf84sgge.execute-api.ap-northeast-1.amazonaws.com` |
+| AgentCore Runtime ID | `ai_agents_wiki_runtime-QWN62yAsAO` |
+| S3 WikiBucket | `wikiinfrastack-wikibucket73754944-dobgxf6wuyas` |
+| S3 RawBucket | `wikiinfrastack-rawbucket0c3ee094-r0lxv3nxkft2` |
+| SSM Parameter | `/ai-agents-wiki/anthropic-api-key`（SecureString、API キー / OAuth トークン） |
+
 ## フェーズ別作業
 
 | フェーズ | 内容 | ディレクトリ | 状態 |
