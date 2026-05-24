@@ -135,18 +135,47 @@ infra/
     └── wiki_runtime_stack.py ← AgentCore Runtime（WikiRuntimeStack）
 ```
 
+### ⚠️ CDK Bootstrap のセキュリティ注意事項
+
+CDK Bootstrap はデフォルトで `CloudFormationExecutionRole`（AdministratorAccess 付き）を作成する。
+これにより **PowerUser でも CloudFormation 経由で IAM ロール作成等の Admin 操作が可能になる**（権限昇格パス）。
+
+| 環境 | 対応方針 |
+|---|---|
+| **開発** | デフォルト bootstrap を許容（アカウント分離で局所化） |
+| **本番** | `--cloudformation-execution-policies` に最小権限ポリシーを指定し AdministratorAccess を避ける |
+
+Bootstrap 自体は `iam:CreateRole` 等が必要なため **PowerUserAccess では実行できず 403 エラーになる**。
+admin 相当のプロファイルで一回だけ実行すること。Bootstrap 完了後は PowerUser で `cdk deploy` できる。
+
+詳細: `infra/CLAUDE.md`
+
 ### フルデプロイ（Phase 2.6）
 
 ECR repo 作成 → Docker push → Runtime 定義の順序依存を解決するため、`deploy.sh` で一括実行する。
 
 ```bash
-# 初回のみ: CDK bootstrap
+# 初回のみ: CDK bootstrap（admin プロファイルで実行）
 cd infra
-AWS_PROFILE=dev CDK_DEFAULT_ACCOUNT=650251713555 CDK_DEFAULT_REGION=ap-northeast-1 \
+AWS_PROFILE=<admin> CDK_DEFAULT_ACCOUNT=650251713555 CDK_DEFAULT_REGION=ap-northeast-1 \
   uv run cdk bootstrap
 
-# フルデプロイ（infra → ECR push → runtime の順）
+# Step 1: フルデプロイ（infra → ECR push → runtime の順）
 ./scripts/deploy.sh
+
+# Step 2: ローカル wiki/raw → S3 初回 sync
+./scripts/s3_sync.sh
+
+# Step 3: デプロイ後ヘルスチェック（スタック状態 / ECR / S3 オブジェクト確認）
+./scripts/verify.sh
+
+# Step 4: Runtime 呼び出し疎通確認（--invoke で実際に LLM を呼ぶ）
+./scripts/verify.sh --invoke
+```
+
+S3 の逆方向 sync（S3 → ローカル）:
+```bash
+./scripts/s3_sync.sh --down
 ```
 
 ### 個別デプロイ
