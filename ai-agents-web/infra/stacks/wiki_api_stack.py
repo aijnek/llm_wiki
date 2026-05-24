@@ -34,7 +34,7 @@ class WikiApiStack(Stack):
             runtime=lambda_.Runtime.PYTHON_3_12,
             handler="handler.processor_handler",
             code=code,
-            timeout=Duration.minutes(10),
+            timeout=Duration.minutes(15),
             environment={
                 "RUNTIME_ARN": runtime_arn,
             },

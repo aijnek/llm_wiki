@@ -160,6 +160,26 @@ async def run_agent(prompt: str) -> AsyncIterator[str]:
 # AgentCore Runtime エントリポイント（HTTP POST /invocations）
 # ---------------------------------------------------------------------------
 
+def _resolve_prompt(prompt: str) -> str:
+    """スラッシュコマンド形式を自然言語の指示に変換する。
+
+    claude_agent_sdk の query() はスラッシュコマンドを Claude Code の
+    組み込みコマンドとして解釈しようとするため、自然言語に変換してから渡す。
+    """
+    if not prompt.startswith("/"):
+        return prompt
+    parts = prompt.split(None, 1)
+    cmd = parts[0].lower()
+    args = parts[1].strip() if len(parts) > 1 else ""
+    if cmd == "/ingest":
+        return f"raw/{args} を wiki に取り込んでください" if args else "raw/ 内の未処理ファイルを wiki に取り込んでください"
+    if cmd == "/query":
+        return args if args else "wiki の内容を教えてください"
+    if cmd == "/lint":
+        return "wiki のヘルスチェックを実行してください"
+    return prompt
+
+
 @app.entrypoint
 async def agent_invocation(payload: dict, context) -> dict:
     """
@@ -173,6 +193,7 @@ async def agent_invocation(payload: dict, context) -> dict:
     if not prompt:
         return {"output": {"error": "prompt が空です"}}
 
+    prompt = _resolve_prompt(prompt)
     stream = await run_agent(prompt)
     chunks: list[str] = []
     async for chunk in stream:

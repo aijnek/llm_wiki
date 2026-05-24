@@ -1,10 +1,15 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import uuid
 
 import boto3
+from botocore.config import Config
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 REGION = os.environ.get("AWS_REGION", "ap-northeast-1")
 RUNTIME_ARN = os.environ.get("RUNTIME_ARN", "")
@@ -54,32 +59,44 @@ def processor_handler(event, context):
     domain = event["domainName"]
     stage = event["stage"]
     prompt = event["prompt"]
+    session_id = str(uuid.uuid4())
+
+    logger.info("START connection_id=%s prompt=%r session_id=%s", connection_id, prompt, session_id)
 
     try:
-        runtime_client = boto3.client("bedrock-agentcore", region_name=REGION)
+        runtime_client = boto3.client(
+            "bedrock-agentcore",
+            region_name=REGION,
+            config=Config(read_timeout=560, connect_timeout=10),  # Lambda timeout 600s より短く設定
+        )
+        logger.info("invoking AgentCore Runtime arn=%s", RUNTIME_ARN)
         response = runtime_client.invoke_agent_runtime(
             agentRuntimeArn=RUNTIME_ARN,
-            runtimeSessionId=str(uuid.uuid4()),
+            runtimeSessionId=session_id,
             payload=json.dumps({"prompt": prompt}).encode("utf-8"),
             contentType="application/json",
             accept="application/json",
         )
 
         raw = response["response"].read().decode("utf-8")
+        logger.info("raw response (%d bytes): %r", len(raw), raw[:500])
         try:
             parsed = json.loads(raw)
             message = parsed.get("output", {}).get("message", raw)
         except (json.JSONDecodeError, AttributeError):
             message = raw
 
+        logger.info("posting message (%d chars) then done", len(message))
         _post(connection_id, domain, stage, {"type": "message", "content": message})
         _post(connection_id, domain, stage, {"type": "done"})
+        logger.info("DONE")
 
     except Exception as e:
+        logger.error("ERROR: %r", e)
         try:
             _post(connection_id, domain, stage, {"type": "error", "message": str(e)})
-        except Exception:
-            pass
+        except Exception as post_err:
+            logger.error("failed to post error: %r", post_err)
 
 
 def presign_handler(event, context):
