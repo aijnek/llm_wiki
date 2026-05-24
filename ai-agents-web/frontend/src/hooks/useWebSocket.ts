@@ -43,30 +43,33 @@ export function useWebSocket() {
           message?: string;
         };
 
+        // capture before any async state update so React's deferred callback reads the right value
+        const pendingId = pendingIdRef.current;
+
         if (data.type === "message" && data.content !== undefined) {
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === pendingIdRef.current
+              m.id === pendingId
                 ? { ...m, content: m.content + data.content!, pending: true }
                 : m
             )
           );
         } else if (data.type === "done") {
+          pendingIdRef.current = null;
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === pendingIdRef.current ? { ...m, pending: false } : m
+              m.id === pendingId ? { ...m, pending: false } : m
             )
           );
-          pendingIdRef.current = null;
         } else if (data.type === "error") {
+          pendingIdRef.current = null;
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === pendingIdRef.current
+              m.id === pendingId
                 ? { ...m, content: `エラー: ${data.message ?? "不明"}`, pending: false }
                 : m
             )
           );
-          pendingIdRef.current = null;
         }
       } catch {
         // ignore malformed frames
@@ -109,5 +112,9 @@ export function useWebSocket() {
     return () => ws.current?.close();
   }, [connect]);
 
-  return { status, messages, sendPrompt, connect, disconnect };
+  const clearMessages = useCallback(() => {
+    setMessages([]);
+  }, []);
+
+  return { status, messages, sendPrompt, connect, disconnect, clearMessages };
 }
