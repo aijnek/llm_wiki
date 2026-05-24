@@ -22,15 +22,23 @@ export function ChatMessage({ message }: Props) {
       >
         {isUser ? (
           <p className="whitespace-pre-wrap">{message.content}</p>
-        ) : (
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {message.content || (message.pending ? "…" : "")}
-            </ReactMarkdown>
+        ) : message.pending && !message.content ? (
+          <div className="flex gap-1 py-1">
+            <span className="h-2 w-2 rounded-full bg-gray-400 animate-bounce [animation-delay:0ms]" />
+            <span className="h-2 w-2 rounded-full bg-gray-400 animate-bounce [animation-delay:150ms]" />
+            <span className="h-2 w-2 rounded-full bg-gray-400 animate-bounce [animation-delay:300ms]" />
           </div>
-        )}
-        {message.pending && !isUser && (
-          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-gray-400 ml-1" />
+        ) : (
+          <>
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {message.content}
+              </ReactMarkdown>
+            </div>
+            {message.pending && (
+              <span className="inline-block h-4 w-0.5 animate-pulse bg-gray-500 dark:bg-gray-400 ml-0.5 align-middle" />
+            )}
+          </>
         )}
       </div>
     </div>

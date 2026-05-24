@@ -21,6 +21,7 @@ from claude_agent_sdk import (
     AssistantMessage,
     ClaudeAgentOptions,
     ResultMessage,
+    StreamEvent,
     TextBlock,
     query,
 )
@@ -131,14 +132,24 @@ async def run_agent(prompt: str) -> AsyncIterator[str]:
         system_prompt=system_prompt,
         cwd=str(WIKI_ROOT),
         permission_mode="bypassPermissions",  # コンテナ内ではファイル操作を自動承認
+        include_partial_messages=True,  # トークン単位のストリーミングを有効化
     )
 
     async def _generate() -> AsyncIterator[str]:
         async for message in query(prompt=prompt, options=options):
-            if isinstance(message, AssistantMessage):
-                for block in message.content:
-                    if isinstance(block, TextBlock):
-                        yield block.text
+            if isinstance(message, StreamEvent):
+                # content_block_delta イベントからテキストを逐次 yield
+                event = message.event
+                if (
+                    event.get("type") == "content_block_delta"
+                    and event.get("delta", {}).get("type") == "text_delta"
+                ):
+                    text = event["delta"].get("text", "")
+                    if text:
+                        yield text
+            elif isinstance(message, AssistantMessage):
+                # StreamEvent で既にストリーミング済みのため内容はスキップ
+                pass
             elif isinstance(message, ResultMessage):
                 if message.is_error:
                     error_detail = (message.errors or [])
