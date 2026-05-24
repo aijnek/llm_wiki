@@ -22,6 +22,8 @@ class WikiRuntimeStack(Stack):
         runtime_sg: ec2.ISecurityGroup,
         wiki_bucket: s3.IBucket,
         raw_bucket: s3.IBucket,
+        wiki_access_point_arn: str,
+        raw_access_point_arn: str,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -43,6 +45,21 @@ class WikiRuntimeStack(Stack):
                     subnets=[s.subnet_id for s in vpc.private_subnets],
                 ),
             ),
+            # S3 Files BYO: wiki/ と raw/ を /mnt/wiki, /mnt/raw にマウント
+            filesystem_configurations=[
+                bedrockagentcore.CfnRuntime.FilesystemConfigurationProperty(
+                    s3_files_access_point=bedrockagentcore.CfnRuntime.S3FilesAccessPointConfigurationProperty(
+                        access_point_arn=wiki_access_point_arn,
+                        mount_path="/mnt/wiki",
+                    )
+                ),
+                bedrockagentcore.CfnRuntime.FilesystemConfigurationProperty(
+                    s3_files_access_point=bedrockagentcore.CfnRuntime.S3FilesAccessPointConfigurationProperty(
+                        access_point_arn=raw_access_point_arn,
+                        mount_path="/mnt/raw",
+                    )
+                ),
+            ],
             environment_variables={
                 "WIKI_BUCKET": wiki_bucket.bucket_name,
                 "RAW_BUCKET": raw_bucket.bucket_name,

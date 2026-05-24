@@ -23,6 +23,8 @@ WikiRuntimeStack(
     runtime_sg=infra.runtime_sg,
     wiki_bucket=infra.wiki_bucket,
     raw_bucket=infra.raw_bucket,
+    wiki_access_point_arn=infra.wiki_access_point_arn,
+    raw_access_point_arn=infra.raw_access_point_arn,
     env=env,
 )
 

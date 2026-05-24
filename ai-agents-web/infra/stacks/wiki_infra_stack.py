@@ -89,6 +89,32 @@ class WikiInfraStack(Stack):
         )
 
         # ------------------------------------------------------------------ #
+        # S3 Access Points（S3 Files BYO — コンテナ内ファイルシステムマウント用）
+        # VPC 制限付きで作成し、Runtime が動く private subnet からのみアクセス可能にする
+        # ------------------------------------------------------------------ #
+        wiki_ap = s3.CfnAccessPoint(
+            self,
+            "WikiAccessPoint",
+            bucket=wiki_bucket.bucket_name,
+            name="wiki-access",
+            vpc_configuration=s3.CfnAccessPoint.VpcConfigurationProperty(
+                vpc_id=vpc.vpc_id,
+            ),
+        )
+        self.wiki_access_point_arn = wiki_ap.attr_arn
+
+        raw_ap = s3.CfnAccessPoint(
+            self,
+            "RawAccessPoint",
+            bucket=raw_bucket.bucket_name,
+            name="raw-access",
+            vpc_configuration=s3.CfnAccessPoint.VpcConfigurationProperty(
+                vpc_id=vpc.vpc_id,
+            ),
+        )
+        self.raw_access_point_arn = raw_ap.attr_arn
+
+        # ------------------------------------------------------------------ #
         # IAM ロール（AgentCore Runtime が引き受ける）
         # ------------------------------------------------------------------ #
         self.agentcore_role = agentcore_role = iam.Role(
@@ -109,7 +135,7 @@ class WikiInfraStack(Stack):
         CfnOutput(
             self,
             "PrivateSubnetIds",
-            value=",".join(s.subnet_id for s in vpc.isolated_subnets),
+            value=",".join(s.subnet_id for s in vpc.private_subnets),
             export_name="WikiPrivateSubnetIds",
         )
         CfnOutput(
@@ -141,4 +167,16 @@ class WikiInfraStack(Stack):
             "AgentCoreRoleArn",
             value=agentcore_role.role_arn,
             export_name="WikiAgentCoreRoleArn",
+        )
+        CfnOutput(
+            self,
+            "WikiAccessPointArn",
+            value=wiki_ap.attr_arn,
+            export_name="WikiAccessPointArn",
+        )
+        CfnOutput(
+            self,
+            "RawAccessPointArn",
+            value=raw_ap.attr_arn,
+            export_name="WikiRawAccessPointArn",
         )

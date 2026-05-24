@@ -118,7 +118,8 @@ docker run --rm \
 | 1 (完了) | scaffold + agent-runtime ローカル検証 | agent-runtime/ |
 | 1.5 (完了) | BedrockAgentCoreApp ラッパー導入・ローカル HTTP 疎通確認 | agent-runtime/ |
 | 2 (完了) | AWS CDK infra — VPC / S3 / ECR / IAM | infra/ |
-| 2.5 (完了) | AgentCore Runtime 定義 + ECR push + cdk deploy | infra/ |
+| 2.5 (完了) | AgentCore Runtime CDK 定義・S3 Files BYO・ECR push スクリプト | infra/ |
+| 2.6 | cdk deploy・S3 初回 sync・AWS 上での疎通確認 | infra/ |
 | 3 | API Lambda + WebSocket | api/ |
 | 4 | Next.js Frontend | frontend/ |
 
@@ -134,7 +135,7 @@ infra/
     └── wiki_runtime_stack.py ← AgentCore Runtime（WikiRuntimeStack）
 ```
 
-### フルデプロイ（Phase 2.5 〜）
+### フルデプロイ（Phase 2.6）
 
 ECR repo 作成 → Docker push → Runtime 定義の順序依存を解決するため、`deploy.sh` で一括実行する。
 
