@@ -18,6 +18,7 @@ export function useWebSocket() {
   const [status, setStatus] = useState<WsStatus>("disconnected");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const pendingIdRef = useRef<string | null>(null);
+  const [reconnectSignal, setReconnectSignal] = useState(0);
 
   const connect = useCallback(() => {
     if (ws.current && ws.current.readyState < WebSocket.CLOSING) return;
@@ -31,6 +32,8 @@ export function useWebSocket() {
     socket.onclose = () => {
       setStatus("disconnected");
       ws.current = null;
+      // 2秒後に自動再接続（ingest 待機中に切断しても再トリガーできるよう）
+      setTimeout(() => setReconnectSignal((n) => n + 1), 2000);
     };
 
     socket.onerror = () => setStatus("error");
@@ -43,7 +46,6 @@ export function useWebSocket() {
           message?: string;
         };
 
-        // capture before any async state update so React's deferred callback reads the right value
         const pendingId = pendingIdRef.current;
 
         if (data.type === "message" && data.content !== undefined) {
@@ -111,6 +113,12 @@ export function useWebSocket() {
     connect();
     return () => ws.current?.close();
   }, [connect]);
+
+  // reconnect when reconnectSignal increments
+  useEffect(() => {
+    if (reconnectSignal === 0) return;
+    connect();
+  }, [reconnectSignal, connect]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);

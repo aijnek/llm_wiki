@@ -28,8 +28,12 @@ export default function IngestPage() {
       wsStatus === "connected" &&
       !ingestTriggeredRef.current
     ) {
-      ingestTriggeredRef.current = true;
-      sendPrompt(`/ingest ${file.name}`);
+      // sendPrompt が true を返した場合のみ ref をセット。
+      // false（ws が未 OPEN）の場合は ref を false のままにして、
+      // 再接続後に wsStatus が "connected" に変わったときに再試行させる。
+      if (sendPrompt(`/ingest ${file.name}`)) {
+        ingestTriggeredRef.current = true;
+      }
     }
   }, [uploadStatus, file, wsStatus, sendPrompt]);
 

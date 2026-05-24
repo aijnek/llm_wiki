@@ -13,6 +13,7 @@ FROM python:3.13-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         git \
+        gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # --- uv のインストール -------------------------------------------------------
@@ -38,6 +39,13 @@ RUN uv sync --frozen --no-dev
 COPY --chown=appuser:appuser src/ ./src/
 COPY --chown=appuser:appuser skills/ ./skills/
 
+# --- root に戻してエントリポイントスクリプトを配置 ---------------------------
+# entrypoint.sh が root として NFS マウントを chown → gosu で appuser に降格する。
+# --dangerously-skip-permissions は root では動作しないため、実際の実行は appuser で行う。
+USER root
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # --- 環境変数 ----------------------------------------------------------------
 # ANTHROPIC_API_KEY は実行時に渡す（ハードコード禁止）
 # WIKI_ROOT はコンテナ内の S3 Files BYO マウントポイントに合わせて上書き可能
@@ -48,5 +56,5 @@ ENV WIKI_ROOT=/mnt
 EXPOSE 8080
 
 # --- エントリポイント --------------------------------------------------------
-ENTRYPOINT ["uv", "run", "python", "src/entrypoint.py"]
+ENTRYPOINT ["docker-entrypoint.sh"]
 # デフォルト引数なし（引数は docker run ... "プロンプト" で渡す）
