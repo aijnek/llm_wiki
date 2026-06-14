@@ -133,6 +133,21 @@ def processor_handler(event, context):
             logger.error("failed to post error: %r", post_err)
 
 
+def get_session_handler(event, context):
+    """HTTP API handler — GET /sessions/{sessionId}"""
+    try:
+        path_params = event.get("pathParameters") or {}
+        session_id = (path_params.get("sessionId") or "").strip()
+    except Exception:
+        session_id = ""
+
+    if not session_id:
+        return _http_response(400, {"error": "sessionId is required"})
+
+    messages = _load_history(session_id)
+    return _http_response(200, {"messages": messages})
+
+
 def presign_handler(event, context):
     """HTTP API handler — POST /presign-upload"""
     try:

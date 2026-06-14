@@ -140,6 +140,21 @@ class WikiApiStack(Stack):
         )
         raw_bucket.grant_put(presign_fn)
 
+        # SessionFn: 単一セッションの会話履歴を返す (Phase 6.5)
+        # presign_fn とは分離して DynamoDB 権限を最小化する
+        session_fn = lambda_.Function(
+            self,
+            "SessionFn",
+            runtime=lambda_.Runtime.PYTHON_3_12,
+            handler="handler.get_session_handler",
+            code=code,
+            timeout=Duration.seconds(10),
+            environment={
+                "SESSIONS_TABLE_NAME": sessions_table.table_name,
+            },
+        )
+        sessions_table.grant_read_data(session_fn)
+
         # HTTP API（CORS 設定済み）
         http_api = apigwv2.HttpApi(
             self,
@@ -147,7 +162,11 @@ class WikiApiStack(Stack):
             api_name="ai-agents-wiki-http",
             cors_preflight=apigwv2.CorsPreflightOptions(
                 allow_origins=["*"],
-                allow_methods=[apigwv2.CorsHttpMethod.POST, apigwv2.CorsHttpMethod.OPTIONS],
+                allow_methods=[
+                    apigwv2.CorsHttpMethod.GET,
+                    apigwv2.CorsHttpMethod.POST,
+                    apigwv2.CorsHttpMethod.OPTIONS,
+                ],
                 allow_headers=["Content-Type"],
                 max_age=Duration.hours(1),
             ),
@@ -158,6 +177,14 @@ class WikiApiStack(Stack):
             methods=[apigwv2.HttpMethod.POST],
             integration=apigwv2_integrations.HttpLambdaIntegration(
                 "PresignInt", presign_fn
+            ),
+        )
+
+        http_api.add_routes(
+            path="/sessions/{sessionId}",
+            methods=[apigwv2.HttpMethod.GET],
+            integration=apigwv2_integrations.HttpLambdaIntegration(
+                "SessionInt", session_fn
             ),
         )
 
