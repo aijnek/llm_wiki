@@ -115,11 +115,11 @@ docker run --rm \
 
 | リソース | 値 |
 |---|---|
-| WebSocket API | `wss://9p1a5dhtjd.execute-api.ap-northeast-1.amazonaws.com/prod` |
-| HTTP API | `https://f7vf84sgge.execute-api.ap-northeast-1.amazonaws.com` |
-| AgentCore Runtime ID | `ai_agents_wiki_runtime-QWN62yAsAO` |
-| S3 WikiBucket | `wikiinfrastack-wikibucket73754944-dobgxf6wuyas` |
-| S3 RawBucket | `wikiinfrastack-rawbucket0c3ee094-r0lxv3nxkft2` |
+| WebSocket API | `wss://db272urbfc.execute-api.ap-northeast-1.amazonaws.com/prod` |
+| HTTP API | `https://uury7h10yj.execute-api.ap-northeast-1.amazonaws.com` |
+| AgentCore Runtime ID | `ai_agents_wiki_runtime-K0Q2oz5y0p` |
+| S3 WikiBucket | `wikiinfrastack-wikibucket73754944-pq71lhxd1nro` |
+| S3 RawBucket | `wikiinfrastack-rawbucket0c3ee094-qb9xex2pwydj` |
 | SSM Parameter | `/ai-agents-wiki/anthropic-api-key`（SecureString、API キー / OAuth トークン） |
 
 ## フェーズ別作業
@@ -135,7 +135,7 @@ docker run --rm \
 | 4.1 | Next.js scaffold + Chat UI（WebSocket 接続・プロンプト送受信） | frontend/ | ✅ 完了 |
 | 4.2 | Ingest UI + presigned URL エンドポイント | frontend/, api/ | ✅ 完了 |
 | 5 | WebSocket ストリーミング | api/, agent-runtime/ | ✅ 完了 |
-| 6 | マルチターン会話 | api/, agent-runtime/, frontend/, infra/ | 📋 計画中 |
+| 6 | マルチターン会話 | api/, agent-runtime/, frontend/, infra/ | ✅ 完了 |
 | 7 | Wiki 閲覧（S3 Markdown 一覧 + Obsidian リンク レンダラ） | frontend/, api/ | 未着手 |
 | 8 | Amplify Hosting デプロイ（CDK + 環境変数設定） | infra/, frontend/ | 未着手 |
 
@@ -150,16 +150,17 @@ AgentCore Runtime からのチャンクをリアルタイムで WebSocket に転
 | 5.3 | `processor_handler` をレスポンス行単位読み込み → チャンクごと WS 送信（`{"type":"message","content":"..."}` × N → `{"type":"done"}`）に変更 |
 | 5.4 | CDK・Lambda 更新（依存ライブラリ追加が必要な場合）・deploy・エンドツーエンド疎通確認 |
 
-### Phase 6: マルチターン会話
+### Phase 6: マルチターン会話 ✅
 
 会話セッションを維持し、前のやりとりを踏まえた回答を実現する。
+履歴は DynamoDB に保持（TTL 7日）。エージェントへの渡し方はプロンプトへのテキスト埋め込み方式（SDK バージョン非依存）。
 
-| サブフェーズ | 内容 |
-|---|---|
-| 6.1 | DynamoDB にセッションテーブル追加（CDK）。項目: `{sessionId (PK), messages: [{role, content}], ttl}` |
-| 6.2 | フロントエンドでセッション ID 生成・WS メッセージに含める（`{ prompt, sessionId }`）。「新しい会話」ボタン追加 |
-| 6.3 | `websocket_handler` → `processor_handler` でセッション ID を受け渡し、DynamoDB から履歴をロード・保存 |
-| 6.4 | Claude Agent SDK の `query` が `messages` パラメータをサポートするか調査。`run_agent` / `agent_invocation` をマルチターン対応に変更（非対応の場合は system prompt への履歴埋め込みで代替） |
+| サブフェーズ | 内容 | 状態 |
+|---|---|---|
+| 6.1 | DynamoDB SessionsTable 追加（CDK）。項目: `{sessionId (PK), messages: [{role, content}], updatedAt, ttl}` | ✅ |
+| 6.2 | フロントエンドで sessionId を `useRef` 保持・`{ prompt, sessionId }` 送信。「新しい会話」ボタンで再発番 | ✅ |
+| 6.3 | `websocket_handler` → `processor_handler` で sessionId を受け渡し、DynamoDB から履歴ロード・保存 | ✅ |
+| 6.4 | `run_agent(history=...)` でプロンプト先頭に「これまでの会話」ブロックを前置（`_build_conversation_context`） | ✅ |
 
 ## infra/ — CDK (Python / uv)
 

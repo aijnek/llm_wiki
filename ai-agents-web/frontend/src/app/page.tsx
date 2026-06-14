@@ -20,7 +20,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function ChatPage() {
-  const { status, messages, sendPrompt, connect } = useWebSocket();
+  const { status, messages, sendPrompt, connect, clearMessages } = useWebSocket();
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const isPending = messages.some((m) => m.pending);
@@ -57,6 +57,14 @@ export default function ChatPage() {
           Ingest
         </Link>
         <div className="flex items-center gap-1.5 ml-auto text-xs text-gray-500 dark:text-gray-400">
+          <button
+            onClick={clearMessages}
+            disabled={messages.length === 0}
+            className="mr-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            title="会話をリセットして新しいセッションを開始"
+          >
+            新しい会話
+          </button>
           <span className={`h-2 w-2 rounded-full ${STATUS_COLOR[status]}`} />
           {STATUS_LABEL[status]}
           {status !== "connected" && (

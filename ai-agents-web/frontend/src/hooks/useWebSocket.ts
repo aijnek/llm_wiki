@@ -19,6 +19,8 @@ export function useWebSocket() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const pendingIdRef = useRef<string | null>(null);
   const [reconnectSignal, setReconnectSignal] = useState(0);
+  // マルチターン会話のセッション ID — 「新しい会話」で再発番する
+  const sessionIdRef = useRef<string>(crypto.randomUUID());
 
   const connect = useCallback(() => {
     if (ws.current && ws.current.readyState < WebSocket.CLOSING) return;
@@ -102,7 +104,7 @@ export function useWebSocket() {
 
       pendingIdRef.current = assistantId;
       setMessages((prev) => [...prev, userMsg, assistantMsg]);
-      ws.current.send(JSON.stringify({ prompt }));
+      ws.current.send(JSON.stringify({ prompt, sessionId: sessionIdRef.current }));
       return true;
     },
     []
@@ -122,6 +124,8 @@ export function useWebSocket() {
 
   const clearMessages = useCallback(() => {
     setMessages([]);
+    // sessionId を再発番して新しい会話として扱う
+    sessionIdRef.current = crypto.randomUUID();
   }, []);
 
   return { status, messages, sendPrompt, connect, disconnect, clearMessages };

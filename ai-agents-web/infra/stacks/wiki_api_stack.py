@@ -1,9 +1,11 @@
 from aws_cdk import (
     CfnOutput,
     Duration,
+    RemovalPolicy,
     Stack,
     aws_apigatewayv2 as apigwv2,
     aws_apigatewayv2_integrations as apigwv2_integrations,
+    aws_dynamodb as dynamodb,
     aws_iam as iam,
     aws_lambda as lambda_,
     aws_s3 as s3,
@@ -26,6 +28,17 @@ class WikiApiStack(Stack):
         # Lambda コードは api/src/ を共有（ProcessorFn / OrchestratorFn で同じパッケージ）
         code = lambda_.Code.from_asset("../api/src")
 
+        # DynamoDB セッションテーブル — マルチターン会話履歴を保持する (Phase 6)
+        # 項目スキーマ: { sessionId (PK), messages: [{role, content}], updatedAt, ttl }
+        sessions_table = dynamodb.Table(
+            self,
+            "SessionsTable",
+            partition_key=dynamodb.Attribute(name="sessionId", type=dynamodb.AttributeType.STRING),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            time_to_live_attribute="ttl",
+            removal_policy=RemovalPolicy.DESTROY,  # 会話履歴は揮発してよい
+        )
+
         # ProcessorFn: AgentCore Runtime を呼んで WebSocket に結果を送り返す
         # 非同期呼び出し専用。API GW の 29s 制約を受けない。
         processor_fn = lambda_.Function(
@@ -37,6 +50,7 @@ class WikiApiStack(Stack):
             timeout=Duration.minutes(15),
             environment={
                 "RUNTIME_ARN": runtime_arn,
+                "SESSIONS_TABLE_NAME": sessions_table.table_name,
             },
         )
         # AWS は bedrock-agentcore:InvokeAgentRuntime のチェックをベース ARN と
@@ -45,6 +59,7 @@ class WikiApiStack(Stack):
             actions=["bedrock-agentcore:InvokeAgentRuntime"],
             resources=["*"],
         ))
+        sessions_table.grant_read_write_data(processor_fn)
 
         # OrchestratorFn: WebSocket ルートを受け取り ProcessorFn を非同期 invoke して即返す
         orchestrator_fn = lambda_.Function(

@@ -108,16 +108,45 @@ def _build_system_prompt() -> str:
 # コアロジック: run_agent()
 # ---------------------------------------------------------------------------
 
-async def run_agent(prompt: str) -> AsyncIterator[str]:
+def _build_conversation_context(history: list[dict]) -> str:
+    """会話履歴をプロンプト先頭に埋め込むテキストブロックを生成する。
+
+    Args:
+        history: [{"role": "user"|"assistant", "content": "..."}] の配列。
+
+    Returns:
+        「これまでの会話」ブロックのテキスト。履歴が空なら空文字列。
+    """
+    if not history:
+        return ""
+    lines = ["# これまでの会話", ""]
+    for turn in history:
+        role = turn.get("role", "")
+        content = turn.get("content", "")
+        if role == "user":
+            lines.append(f"ユーザー: {content}")
+        elif role == "assistant":
+            lines.append(f"アシスタント: {content}")
+    lines.append("")
+    return "\n".join(lines)
+
+
+async def run_agent(
+    prompt: str,
+    history: list[dict] | None = None,
+) -> AsyncIterator[str]:
     """
     Agent SDK を使ってプロンプトを実行し、テキストチャンクを yield する。
+
+    Args:
+        prompt: 今回のユーザー入力。
+        history: 過去の会話ターン [{"role": "user"|"assistant", "content": "..."}]。
+                 None または空リストの場合はシングルターンとして動作（CLI 後方互換）。
 
     戻り値は AsyncIterator[str] なので呼び出し側は:
         async for chunk in run_agent(prompt):
             print(chunk, end="", flush=True)
     のように使う。
-
-    将来の BedrockAgentCoreApp 対応時もこの関数シグネチャは変えない。
     """
     if not os.environ.get("ANTHROPIC_API_KEY") and not os.environ.get("CLAUDE_CODE_OAUTH_TOKEN"):
         raise EnvironmentError(
@@ -128,6 +157,10 @@ async def run_agent(prompt: str) -> AsyncIterator[str]:
 
     system_prompt = _build_system_prompt()
 
+    # 会話履歴があればプロンプト先頭に前置する（SDK 非依存のテキスト埋め込み方式）
+    context = _build_conversation_context(history or [])
+    full_prompt = f"{context}# 今回のリクエスト\n{prompt}" if context else prompt
+
     options = ClaudeAgentOptions(
         system_prompt=system_prompt,
         cwd=str(WIKI_ROOT),
@@ -136,7 +169,7 @@ async def run_agent(prompt: str) -> AsyncIterator[str]:
     )
 
     async def _generate() -> AsyncIterator[str]:
-        async for message in query(prompt=prompt, options=options):
+        async for message in query(prompt=full_prompt, options=options):
             if isinstance(message, StreamEvent):
                 # content_block_delta イベントからテキストを逐次 yield
                 event = message.event
@@ -176,9 +209,16 @@ def _resolve_prompt(prompt: str) -> str:
 
     claude_agent_sdk の query() はスラッシュコマンドを Claude Code の
     組み込みコマンドとして解釈しようとするため、自然言語に変換してから渡す。
+
+    スラッシュコマンドでない通常の質問は /query として扱い、wiki 参照を明示する。
     """
     if not prompt.startswith("/"):
-        return prompt
+        # 通常の質問は wiki を参照してから答えるよう明示的に指示する
+        return (
+            f"wiki の内容をもとに次の質問に回答してください。"
+            f"まず wiki/index.md を読んで関連ページを特定し、該当ページを読んでから回答してください。"
+            f"wiki に情報がない場合は「wiki には記録がない」と明示してください。\n\n質問: {prompt}"
+        )
     parts = prompt.split(None, 1)
     cmd = parts[0].lower()
     args = parts[1].strip() if len(parts) > 1 else ""
@@ -195,7 +235,7 @@ def _resolve_prompt(prompt: str) -> str:
 async def agent_invocation(payload: dict, context):
     """
     BedrockAgentCoreApp が受け取る HTTP ハンドラ。
-    ペイロード形式: {"input": {"prompt": "..."}} または {"prompt": "..."}
+    ペイロード形式: {"input": {"prompt": "...", "history": [...]}} または {"prompt": "...", "history": [...]}
 
     async generator として yield することで BedrockAgentCoreApp が SSE ストリーミングで送出する。
     ProcessorFn が iter_lines() でチャンクを受け取り WebSocket に流すことで、
@@ -204,13 +244,15 @@ async def agent_invocation(payload: dict, context):
     _load_api_key_from_ssm()
     input_data = payload.get("input", {})
     prompt = input_data.get("prompt", payload.get("prompt", ""))
+    # ProcessorFn が DynamoDB からロードした会話履歴を受け取る（未指定時は空＝シングルターン）
+    history: list[dict] = input_data.get("history", payload.get("history", []))
 
     if not prompt:
         yield {"type": "error", "text": "prompt が空です"}
         return
 
     prompt = _resolve_prompt(prompt)
-    stream = await run_agent(prompt)
+    stream = await run_agent(prompt, history=history)
     async for chunk in stream:
         yield {"type": "chunk", "text": chunk}
 
