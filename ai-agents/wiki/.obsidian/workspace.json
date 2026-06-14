@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "sources/2026-05-23-ask-user-question-agent-types.md",
+                "file": "concepts/task-horizon.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "2026-05-23-ask-user-question-agent-types"
+              "title": "task-horizon"
             }
           }
         ]
@@ -185,13 +185,24 @@
   },
   "active": "ac17b5fc948cdf5a",
   "lastOpenFiles": [
+    "sources/2026-06-13-when-ai-builds-itself.md",
+    "concepts/harness-engineering.md",
+    "無題のファイル.base",
+    "entities/claude-agent-sdk.md",
+    "entities/anthropic.md",
+    "entities/anthropic-institute.md",
+    "concepts/recursive-self-improvement.md",
+    "concepts/context-anxiety.md",
+    "concepts/computational-vs-inferential.md",
+    "concepts/ask-user-question.md",
+    "concepts/agentic-development-loop.md",
+    "concepts/agent-legibility.md",
+    "index.md",
+    "sources/2026-05-23-ask-user-question-agent-types.md",
     "sources/2026-05-23-llm-instruction-following.md",
     "overview.md",
-    "index.md",
     "concepts/human-in-the-loop.md",
-    "concepts/ask-user-question.md",
     "concepts/ambient-agent.md",
-    "sources/2026-05-23-ask-user-question-agent-types.md",
     "entities/qwen.md",
     "concepts/model-hacking-tendency.md",
     "concepts/state-machine-tasks.md",
@@ -201,16 +212,6 @@
     "concepts/reasoning-sandwich.md",
     "concepts/doom-loop.md",
     "concepts/trace-analysis.md",
-    "concepts/self-verification-loop.md",
-    "concepts/harnessability.md",
-    "concepts/harness-categories.md",
-    "concepts/computational-vs-inferential.md",
-    "concepts/feedforward-feedback.md",
-    "sources/2026-05-23-improving-deep-agents-langchain.md",
-    "sources/2026-05-23-harness-engineering-coding-users.md",
-    "entities/claude-agent-sdk.md",
-    "entities/anthropic.md",
-    "concepts/sprint-contract.md",
     "Clippings"
   ]
 }

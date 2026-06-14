@@ -104,3 +104,14 @@ type: log
 - 提案: ステアリングループ（Steering Loop）の専用概念ページ作成（harness-engineering.mdで言及されているがリンクなし）
 - 検出（未修正）: harness-engineering.md・context-management.mdの"Opus 4.5"表記（context-anxiety.mdでは"Claude Sonnet 4.5"と記載、矛盾あり）
 - 検出（未修正）: context-management.mdの"Claude Agent SDK"2か所がObsidianリンク未使用
+
+---
+
+## [2026-06-13] ingest | When AI builds itself
+
+- 作成: wiki/sources/2026-06-13-when-ai-builds-itself.md
+- 作成: wiki/concepts/recursive-self-improvement.md
+- 作成: wiki/concepts/task-horizon.md
+- 作成: wiki/entities/anthropic-institute.md
+- 更新: wiki/entities/anthropic.md（定量データ・Anthropic Institute追記）, wiki/index.md, wiki/overview.md
+- メモ: Anthropic InstituteのMarina Favaro・Jack Clarkによるレポート。タスクホライズンが4ヶ月ごとに倍増、2026年5月時点でコードの80%以上がClaude著、エンジニア生産性8倍という社内データを公開。再帰的自己改善の3シナリオ（S字曲線・継続的効率化・完全再帰）を整理し、国際的なガバナンス構築の必要性を訴えた

@@ -9,7 +9,7 @@ type: index
 
 ---
 
-## ソース (6件)
+## ソース (7件)
 
 - [[sources/2026-05-23-harness-engineering-codex]] — OpenAIによるエージェントファースト開発の実践：手書きコード禁止で100万行を構築
 - [[sources/2026-05-23-harness-design-long-running-apps]] — AnthropicによるGenerator-Evaluatorアーキテクチャと長時間実行ハーネスの実験報告
@@ -17,11 +17,14 @@ type: index
 - [[sources/2026-05-23-improving-deep-agents-langchain]] — LangChainがハーネスのみでTerminal Bench 2.0 Top30→Top5を達成した定量的実証
 - [[sources/2026-05-23-llm-instruction-following]] — Qwen3.5/Claudeシリーズで7タスク×6モデルの指示追従能力境界を観察した個人実験メモ
 - [[sources/2026-05-23-ask-user-question-agent-types]] — エージェントタイプによってAskUserQuestionの価値が変わるというメモ（チャット型 vs Ambient型）
+- [[sources/2026-06-13-when-ai-builds-itself]] — Anthropic Instituteによる再帰的自己改善レポート：タスクホライズン倍増・80%+コード自動化・3つの未来シナリオ
 
 ---
 
-## 概念 (24件)
+## 概念 (26件)
 
+- [[concepts/recursive-self-improvement]] — AIが自分自身の後継を完全自律的に設計・開発する能力とその到達までの段階
+- [[concepts/task-horizon]] — METRが測定するAI能力指標：50%信頼性でこなせるタスクの所要時間（4ヶ月ごとに倍増中）
 - [[concepts/harness-engineering]] — AIコーディングエージェントが機能するための環境・スキャフォールド・フィードバックループの設計
 - [[concepts/feedforward-feedback]] — ハーネスの2方向コントロール：ガイド（フィードフォワード）とセンサー（フィードバック）
 - [[concepts/computational-vs-inferential]] — 決定論的・高速なCPU処理と確率論的・高コストなGPU処理のコントロール区分
@@ -49,11 +52,12 @@ type: index
 
 ---
 
-## エンティティ (6件)
+## エンティティ (7件)
 
 - [[entities/openai]] — AGI研究の最前線企業、Codex・ChatGPT等を開発
 - [[entities/openai-codex]] — OpenAIのAIコーディングエージェント、手書きコード不要の開発を実現
-- [[entities/anthropic]] — Claude・Claude Codeを開発するAI安全性研究企業
+- [[entities/anthropic]] — Claude・Claude Codeを開発するAI安全性研究企業（2026年時点でコードの80%以上をAIが自動生成）
+- [[entities/anthropic-institute]] — Anthropicの政策・社会影響研究部門、再帰的自己改善レポートを発行
 - [[entities/claude-agent-sdk]] — Anthropicが提供するマルチエージェントシステム構築SDK
 - [[entities/langchain]] — LangSmith・LangGraph・deepagents-cliを提供するエージェントフレームワーク
 - [[entities/qwen]] — Alibaba Cloudが開発するオープンソースLLMシリーズ（4B/9B/27B等）
