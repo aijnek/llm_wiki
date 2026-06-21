@@ -34,6 +34,9 @@ WikiApiStack(
     "WikiApiStack",
     runtime_arn=runtime.runtime_arn,
     raw_bucket=infra.raw_bucket,
+    wiki_bucket=infra.wiki_bucket,
+    wiki_index_table_name=infra.wiki_index_table_name,
+    wiki_index_table_arn=infra.wiki_index_table_arn,
     env=env,
 )
 

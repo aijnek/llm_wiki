@@ -21,6 +21,9 @@ class WikiApiStack(Stack):
         *,
         runtime_arn: str,
         raw_bucket: s3.IBucket,
+        wiki_bucket: s3.IBucket,
+        wiki_index_table_name: str,
+        wiki_index_table_arn: str,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -186,6 +189,69 @@ class WikiApiStack(Stack):
             integration=apigwv2_integrations.HttpLambdaIntegration(
                 "SessionInt", session_fn
             ),
+        )
+
+        # ------------------------------------------------------------------ #
+        # Wiki 閲覧 API — ReindexFn（手動再構築）と WikiReadFn（読み取り専用）
+        # IndexerFn は WikiInfraStack に配置（wiki_bucket 通知の循環依存を回避）
+        # ------------------------------------------------------------------ #
+        wiki_index_table = dynamodb.Table.from_table_arn(
+            self, "WikiIndexTableRef", wiki_index_table_arn
+        )
+
+        reindex_fn = lambda_.Function(
+            self,
+            "ReindexFn",
+            runtime=lambda_.Runtime.PYTHON_3_12,
+            handler="handler.reindex_handler",
+            code=code,
+            timeout=Duration.minutes(15),  # ページ数に比例するため十分な余裕を持たせる
+            environment={
+                "WIKI_BUCKET_NAME": wiki_bucket.bucket_name,
+                "WIKI_INDEX_TABLE_NAME": wiki_index_table_name,
+            },
+        )
+        wiki_bucket.grant_read(reindex_fn)
+        wiki_index_table.grant_read_write_data(reindex_fn)
+
+        wiki_read_fn = lambda_.Function(
+            self,
+            "WikiReadFn",
+            runtime=lambda_.Runtime.PYTHON_3_12,
+            handler="handler.wiki_read_handler",
+            code=code,
+            timeout=Duration.seconds(10),
+            environment={
+                "WIKI_BUCKET_NAME": wiki_bucket.bucket_name,
+                "WIKI_INDEX_TABLE_NAME": wiki_index_table_name,
+            },
+        )
+        wiki_bucket.grant_read(wiki_read_fn)
+        wiki_index_table.grant_read_data(wiki_read_fn)
+
+        wiki_read_int = apigwv2_integrations.HttpLambdaIntegration(
+            "WikiReadInt", wiki_read_fn
+        )
+        # /wiki/facets と /wiki/pages は静的パス、/wiki/page/ と /wiki/backlinks/ は greedy proxy
+        http_api.add_routes(
+            path="/wiki/facets",
+            methods=[apigwv2.HttpMethod.GET],
+            integration=wiki_read_int,
+        )
+        http_api.add_routes(
+            path="/wiki/pages",
+            methods=[apigwv2.HttpMethod.GET],
+            integration=wiki_read_int,
+        )
+        http_api.add_routes(
+            path="/wiki/page/{proxy+}",
+            methods=[apigwv2.HttpMethod.GET],
+            integration=wiki_read_int,
+        )
+        http_api.add_routes(
+            path="/wiki/backlinks/{proxy+}",
+            methods=[apigwv2.HttpMethod.GET],
+            integration=wiki_read_int,
         )
 
         CfnOutput(

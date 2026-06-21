@@ -97,8 +97,14 @@ export default function ChatPage() {
             AI Agents Wiki
           </h1>
           <Link
-            href="/ingest"
+            href="/wiki"
             className="ml-4 text-sm text-link hover:underline"
+          >
+            Wiki
+          </Link>
+          <Link
+            href="/ingest"
+            className="ml-2 text-sm text-link hover:underline"
           >
             Ingest
           </Link>

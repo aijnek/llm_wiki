@@ -115,11 +115,11 @@ docker run --rm \
 
 | リソース | 値 |
 |---|---|
-| WebSocket API | `wss://db272urbfc.execute-api.ap-northeast-1.amazonaws.com/prod` |
-| HTTP API | `https://uury7h10yj.execute-api.ap-northeast-1.amazonaws.com` |
-| AgentCore Runtime ID | `ai_agents_wiki_runtime-K0Q2oz5y0p` |
-| S3 WikiBucket | `wikiinfrastack-wikibucket73754944-pq71lhxd1nro` |
-| S3 RawBucket | `wikiinfrastack-rawbucket0c3ee094-qb9xex2pwydj` |
+| WebSocket API | `wss://7tzwtii4r9.execute-api.ap-northeast-1.amazonaws.com/prod` |
+| HTTP API | `https://2favurghi1.execute-api.ap-northeast-1.amazonaws.com` |
+| AgentCore Runtime ID | `ai_agents_wiki_runtime-pZXVnUFU6y` |
+| S3 WikiBucket | `wikiinfrastack-wikibucket73754944-wt3glydjjifn` |
+| S3 RawBucket | `wikiinfrastack-rawbucket0c3ee094-ue9t2ofznp1c` |
 | SSM Parameter | `/ai-agents-wiki/anthropic-api-key`（SecureString、API キー / OAuth トークン） |
 
 ## フェーズ別作業

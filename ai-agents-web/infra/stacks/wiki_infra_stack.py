@@ -1,11 +1,15 @@
 from aws_cdk import (
     CfnOutput,
+    Duration,
     RemovalPolicy,
     Stack,
+    aws_dynamodb as dynamodb,
     aws_ec2 as ec2,
     aws_ecr as ecr,
     aws_iam as iam,
+    aws_lambda as lambda_,
     aws_s3 as s3,
+    aws_s3_notifications as s3n,
     aws_s3files as s3files,
 )
 from constructs import Construct
@@ -231,6 +235,51 @@ class WikiInfraStack(Stack):
         ))
 
         # ------------------------------------------------------------------ #
+        # Wiki Index DynamoDB テーブル（シングルテーブル設計、PK+SK のみ）
+        # ページメタ・フォルダ/タグ一覧・バックリンク・FACET カウンタを保持する。
+        # 本文は S3 に置き、DDB はインデックスのみ。再構築可能なため DESTROY でよい。
+        # ------------------------------------------------------------------ #
+        wiki_index_table = dynamodb.Table(
+            self,
+            "WikiIndexTable",
+            partition_key=dynamodb.Attribute(name="PK", type=dynamodb.AttributeType.STRING),
+            sort_key=dynamodb.Attribute(name="SK", type=dynamodb.AttributeType.STRING),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=RemovalPolicy.DESTROY,
+        )
+        self.wiki_index_table_name = wiki_index_table.table_name
+        self.wiki_index_table_arn = wiki_index_table.table_arn
+
+        # ------------------------------------------------------------------ #
+        # Indexer Lambda — S3 ObjectCreated/Removed イベントで差分インデックス更新。
+        # wiki_bucket と同じスタックに置くことでクロススタック循環依存を回避する。
+        # ------------------------------------------------------------------ #
+        indexer_fn = lambda_.Function(
+            self,
+            "IndexerFn",
+            runtime=lambda_.Runtime.PYTHON_3_12,
+            handler="handler.index_object_handler",
+            code=lambda_.Code.from_asset("../api/src"),
+            timeout=Duration.minutes(5),
+            environment={
+                "WIKI_BUCKET_NAME": wiki_bucket.bucket_name,
+                "WIKI_INDEX_TABLE_NAME": wiki_index_table.table_name,
+            },
+        )
+        wiki_bucket.grant_read(indexer_fn)
+        wiki_index_table.grant_read_write_data(indexer_fn)
+
+        # S3 → Lambda 通知（ObjectCreated と ObjectRemoved の両方）
+        notification = s3n.LambdaDestination(indexer_fn)
+        key_filter = s3.NotificationKeyFilter(suffix=".md")
+        wiki_bucket.add_event_notification(
+            s3.EventType.OBJECT_CREATED, notification, key_filter
+        )
+        wiki_bucket.add_event_notification(
+            s3.EventType.OBJECT_REMOVED, notification, key_filter
+        )
+
+        # ------------------------------------------------------------------ #
         # Outputs
         # ------------------------------------------------------------------ #
         CfnOutput(self, "VpcId", value=vpc.vpc_id, export_name="WikiVpcId")
@@ -281,4 +330,16 @@ class WikiInfraStack(Stack):
             "RawAccessPointArn",
             value=raw_ap.attr_access_point_arn,
             export_name="WikiRawAccessPointArn",
+        )
+        CfnOutput(
+            self,
+            "WikiIndexTableName",
+            value=wiki_index_table.table_name,
+            export_name="WikiIndexTableName",
+        )
+        CfnOutput(
+            self,
+            "WikiIndexTableArn",
+            value=wiki_index_table.table_arn,
+            export_name="WikiIndexTableArn",
         )
