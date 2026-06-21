@@ -20,7 +20,6 @@ export default function IngestPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const ingestTriggeredRef = useRef(false);
 
-  // アップロード完了 + WS 接続済みになったら自動で ingest を送信
   useEffect(() => {
     if (
       uploadStatus === "uploaded" &&
@@ -28,16 +27,12 @@ export default function IngestPage() {
       wsStatus === "connected" &&
       !ingestTriggeredRef.current
     ) {
-      // sendPrompt が true を返した場合のみ ref をセット。
-      // false（ws が未 OPEN）の場合は ref を false のままにして、
-      // 再接続後に wsStatus が "connected" に変わったときに再試行させる。
       if (sendPrompt(`/ingest ${file.name}`)) {
         ingestTriggeredRef.current = true;
       }
     }
   }, [uploadStatus, file, wsStatus, sendPrompt]);
 
-  // ingest レスポンス（最後のアシスタントメッセージ）
   const assistantMessages = messages.filter((m) => m.role === "assistant");
   const ingestMsg = assistantMessages[assistantMessages.length - 1] ?? null;
   const isIngesting = ingestMsg?.pending === true;
@@ -111,13 +106,13 @@ export default function IngestPage() {
     uploadStatus === "presigning" || uploadStatus === "uploading" || isIngesting;
 
   return (
-    <div className="flex h-screen flex-col bg-white dark:bg-gray-900">
-      <header className="flex items-center gap-3 border-b border-gray-200 dark:border-gray-700 px-5 py-3">
-        <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Ingest</h1>
-        <span className="ml-auto text-xs text-gray-400 font-mono">WS: {wsStatus}</span>
+    <div className="flex h-screen flex-col bg-canvas">
+      <header className="flex items-center gap-3 border-b border-border px-5 py-3 bg-surface">
+        <h1 className="text-lg font-semibold text-strong">Ingest</h1>
+        <span className="ml-auto text-xs text-faint font-mono">WS: {wsStatus}</span>
         <Link
           href="/"
-          className="text-sm text-blue-500 hover:text-blue-700 underline"
+          className="text-sm text-link hover:underline"
         >
           ← チャットに戻る
         </Link>
@@ -129,10 +124,10 @@ export default function IngestPage() {
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
           onClick={() => !isProcessing && inputRef.current?.click()}
-          className={`flex w-full max-w-lg cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-8 py-16 text-center transition ${
+          className={`flex w-full max-w-lg cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed px-8 py-16 text-center transition-colors ${
             isProcessing
-              ? "border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-60"
-              : "border-gray-300 dark:border-gray-600 hover:border-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+              ? "border-border cursor-not-allowed opacity-60"
+              : "border-border hover:border-primary hover:bg-surface-sunken"
           }`}
         >
           <input
@@ -145,16 +140,16 @@ export default function IngestPage() {
           {file ? (
             <>
               <span className="text-2xl">📄</span>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{file.name}</p>
-              <p className="text-xs text-gray-400">{(file.size / 1024).toFixed(1)} KB</p>
+              <p className="text-sm font-medium text-strong">{file.name}</p>
+              <p className="text-xs text-faint">{(file.size / 1024).toFixed(1)} KB</p>
             </>
           ) : (
             <>
-              <span className="text-2xl text-gray-300">⬆</span>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <span className="text-2xl text-faint">⬆</span>
+              <p className="text-sm text-muted">
                 ファイルをドロップ、またはクリックして選択
               </p>
-              <p className="text-xs text-gray-400">.md / .txt / .pdf</p>
+              <p className="text-xs text-faint">.md / .txt / .pdf</p>
             </>
           )}
         </div>
@@ -162,13 +157,13 @@ export default function IngestPage() {
         {/* アップロード進捗 */}
         {(uploadStatus === "uploading" || uploadStatus === "uploaded") && (
           <div className="w-full max-w-lg">
-            <div className="flex justify-between text-xs text-gray-500 mb-1">
+            <div className="flex justify-between text-xs text-muted mb-1">
               <span>S3 アップロード</span>
               <span>{progress}%</span>
             </div>
-            <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+            <div className="h-2 w-full rounded-full bg-surface-sunken">
               <div
-                className="h-2 rounded-full bg-blue-500 transition-all"
+                className="h-2 rounded-full bg-primary transition-all"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -177,14 +172,14 @@ export default function IngestPage() {
 
         {/* Ingest ステータス & エージェント応答 */}
         {uploadStatus === "uploaded" && (
-          <div className="w-full max-w-lg rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <div className="flex items-center gap-2 mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+          <div className="w-full max-w-lg rounded-xl border border-border p-4 bg-surface">
+            <div className="flex items-center gap-2 mb-3 text-sm font-medium text-body">
               {isIngested ? (
-                <span className="text-green-600">✓</span>
+                <span className="text-success">✓</span>
               ) : ingestTriggeredRef.current ? (
-                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-yellow-400" />
+                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-warning" />
               ) : (
-                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-gray-300" />
+                <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-faint" />
               )}
               <span>
                 {isIngested
@@ -195,7 +190,7 @@ export default function IngestPage() {
               </span>
             </div>
             {ingestMsg?.content && (
-              <div className="prose prose-sm dark:prose-invert max-w-none">
+              <div className="prose prose-sm max-w-none">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {ingestMsg.content}
                 </ReactMarkdown>
@@ -205,7 +200,7 @@ export default function IngestPage() {
         )}
 
         {uploadStatus === "error" && (
-          <p className="text-sm text-red-500">{errorMsg}</p>
+          <p className="text-sm text-danger">{errorMsg}</p>
         )}
 
         {/* ボタン */}
@@ -213,7 +208,7 @@ export default function IngestPage() {
           <button
             onClick={handleUpload}
             disabled={!file || isProcessing}
-            className="rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="rounded-xl bg-primary px-6 py-2.5 text-sm font-medium text-on-primary hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {uploadStatus === "presigning"
               ? "準備中..."
@@ -226,7 +221,7 @@ export default function IngestPage() {
           {(file || uploadStatus !== "idle") && !isProcessing && (
             <button
               onClick={reset}
-              className="rounded-xl border border-gray-300 dark:border-gray-600 px-6 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="rounded-xl border border-border px-6 py-2.5 text-sm text-body hover:bg-surface-hover transition-colors"
             >
               リセット
             </button>

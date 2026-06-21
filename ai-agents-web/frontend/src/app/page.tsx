@@ -14,10 +14,10 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  disconnected: "bg-gray-400",
-  connecting: "bg-yellow-400 animate-pulse",
-  connected: "bg-green-500",
-  error: "bg-red-500",
+  disconnected: "bg-muted",
+  connecting: "bg-warning animate-pulse",
+  connected: "bg-success",
+  error: "bg-danger",
 };
 
 export default function ChatPage() {
@@ -58,7 +58,6 @@ export default function ChatPage() {
   };
 
   const handleSelectSession = async (sessionId: string) => {
-    // messages が空の場合は同じ sessionId でも再ロードする（ページリロード後の復元）
     if (sessionId === currentSessionId && messages.length > 0) return;
     const result = await loadSession(sessionId);
     if (result === "expired") {
@@ -74,14 +73,13 @@ export default function ChatPage() {
   };
 
   const handleRemove = (sessionId: string) => {
-    // 削除されたのが現在のセッションなら新しい会話へ
     if (sessionId === currentSessionId) {
       clearMessages();
     }
   };
 
   return (
-    <div className="flex h-screen bg-white dark:bg-gray-900">
+    <div className="flex h-screen bg-canvas">
       {/* 左サイドバー */}
       <SessionSidebar
         currentSessionId={currentSessionId}
@@ -94,23 +92,23 @@ export default function ChatPage() {
       {/* メインチャット列 */}
       <div className="flex flex-1 flex-col min-w-0">
         {/* Header */}
-        <header className="flex items-center gap-3 border-b border-gray-200 dark:border-gray-700 px-5 py-3">
-          <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        <header className="flex items-center gap-3 border-b border-border px-5 py-3 bg-surface">
+          <h1 className="text-lg font-semibold text-strong">
             AI Agents Wiki
           </h1>
           <Link
             href="/ingest"
-            className="ml-4 text-sm text-blue-500 hover:text-blue-700 underline"
+            className="ml-4 text-sm text-link hover:underline"
           >
             Ingest
           </Link>
-          <div className="flex items-center gap-1.5 ml-auto text-xs text-gray-500 dark:text-gray-400">
+          <div className="flex items-center gap-1.5 ml-auto text-xs text-muted">
             <span className={`h-2 w-2 rounded-full ${STATUS_COLOR[status]}`} />
             {STATUS_LABEL[status]}
             {status !== "connected" && (
               <button
                 onClick={connect}
-                className="ml-2 text-blue-500 underline hover:text-blue-700"
+                className="ml-2 text-link underline hover:text-primary-hover"
               >
                 再接続
               </button>
@@ -121,12 +119,12 @@ export default function ChatPage() {
         {/* Messages */}
         <main className="flex-1 overflow-y-auto px-4 py-4">
           {expiredNotice && (
-            <p className="text-center text-sm text-red-400 mb-4">
+            <p className="text-center text-sm text-danger mb-4">
               この会話の履歴は期限切れです（7日が経過しました）。
             </p>
           )}
           {messages.length === 0 && !expiredNotice && (
-            <p className="text-center text-sm text-gray-400 mt-20">
+            <p className="text-center text-sm text-faint mt-20">
               AI Agents Wiki に質問してください
             </p>
           )}
@@ -137,10 +135,10 @@ export default function ChatPage() {
         </main>
 
         {/* Input */}
-        <footer className="border-t border-gray-200 dark:border-gray-700 px-4 py-3">
+        <footer className="border-t border-border px-4 py-3 bg-surface">
           <div className="mx-auto flex max-w-3xl items-end gap-2">
             <textarea
-              className="flex-1 resize-none rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 resize-none rounded-xl border border-border bg-surface-sunken px-4 py-2.5 text-sm text-body placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="質問を入力 (Shift+Enter で改行)"
               rows={2}
               value={input}
@@ -151,7 +149,7 @@ export default function ChatPage() {
             <button
               onClick={handleSend}
               disabled={!input.trim() || isPending || status !== "connected"}
-              className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-on-primary hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               送信
             </button>

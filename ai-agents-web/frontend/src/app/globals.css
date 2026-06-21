@@ -1,27 +1,443 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================
+   KAN Design System — tokens integrated into the Next.js app.
+   Source: claude.ai/design project "KAN Design System"
+   ============================================================ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ---- Color tokens ---- */
+:root {
+  /* Stone (warm neutral) */
+  --stone-50:  #F8F6F1;
+  --stone-100: #F1EEE6;
+  --stone-150: #EAE6DB;
+  --stone-200: #E2DDD0;
+  --stone-300: #D0C9B9;
+  --stone-400: #ABA391;
+  --stone-500: #847C6C;
+  --stone-600: #645D4F;
+  --stone-700: #494337;
+  --stone-800: #2E2A22;
+  --stone-900: #1B1812;
+  --stone-950: #110F0A;
+
+  /* Slate (primary — quiet ink blue) */
+  --slate-50:  #EEF2F5;
+  --slate-100: #DBE3EA;
+  --slate-200: #B7C7D3;
+  --slate-300: #8AA3B6;
+  --slate-400: #5C7B93;
+  --slate-500: #3E5E78;
+  --slate-600: #2F4A63;
+  --slate-700: #283D52;
+  --slate-800: #213140;
+  --slate-900: #19262F;
+
+  /* Clay (secondary accent) */
+  --clay-50:  #F6EEE9;
+  --clay-100: #ECD9CD;
+  --clay-300: #D2A88E;
+  --clay-400: #C18A6E;
+  --clay-500: #A8674C;
+  --clay-600: #8C5239;
+
+  /* Semantic hues */
+  --sage-100: #DCE7DD;
+  --sage-500: #4E7A5B;
+  --sage-600: #3D6149;
+  --ochre-100: #F0E4C8;
+  --ochre-500: #B5863E;
+  --ochre-600: #8F6A30;
+  --brick-100: #F1D8D3;
+  --brick-500: #A6443A;
+  --brick-600: #87362E;
+
+  /* Semantic aliases — light */
+  --canvas:          var(--stone-50);
+  --surface:         #FFFFFF;
+  --surface-sunken:  var(--stone-100);
+  --surface-hover:   var(--stone-100);
+  --overlay-scrim:   rgba(27, 24, 18, 0.42);
+
+  --text-strong:     var(--stone-900);
+  --text-body:       var(--stone-800);
+  --text-muted:      var(--stone-600);
+  --text-faint:      var(--stone-500);
+  --text-on-accent:  #FFFFFF;
+  --text-link:       var(--slate-600);
+
+  --border:          var(--stone-200);
+  --border-strong:   var(--stone-300);
+  --border-faint:    var(--stone-150);
+  --ring:            var(--slate-400);
+
+  --primary:         var(--slate-600);
+  --primary-hover:   var(--slate-700);
+  --primary-active:  var(--slate-800);
+  --primary-soft:    var(--slate-50);
+  --primary-soft-border: var(--slate-100);
+  --on-primary:      #FFFFFF;
+
+  --accent:          var(--clay-500);
+  --accent-hover:    var(--clay-600);
+  --accent-soft:     var(--clay-50);
+
+  --success:         var(--sage-600);
+  --success-soft:    var(--sage-100);
+  --warning:         var(--ochre-600);
+  --warning-soft:    var(--ochre-100);
+  --danger:          var(--brick-500);
+  --danger-hover:    var(--brick-600);
+  --danger-soft:     var(--brick-100);
+  --info:            var(--slate-600);
+  --info-soft:       var(--slate-50);
+
+  --highlight: rgba(181, 134, 62, 0.18);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --canvas:          var(--stone-950);
+    --surface:         #1E1B15;
+    --surface-sunken:  #161309;
+    --surface-hover:   #26221A;
+    --overlay-scrim:   rgba(0, 0, 0, 0.6);
+
+    --text-strong:     var(--stone-50);
+    --text-body:       var(--stone-150);
+    --text-muted:      var(--stone-400);
+    --text-faint:      var(--stone-500);
+    --text-link:       var(--slate-300);
+
+    --border:          #322D23;
+    --border-strong:   #423B2D;
+    --border-faint:    #28241C;
+
+    --primary:         var(--slate-300);
+    --primary-hover:   var(--slate-200);
+    --primary-active:  var(--slate-100);
+    --primary-soft:    #20303D;
+    --primary-soft-border: #2A3E4F;
+    --on-primary:      var(--stone-950);
+
+    --accent:          var(--clay-400);
+    --accent-hover:    var(--clay-300);
+    --accent-soft:     #2E2018;
+
+    --success:         #7CA886;
+    --success-soft:    #1F2C22;
+    --warning:         #D2A861;
+    --warning-soft:    #2C2615;
+    --danger:          #D27A6F;
+    --danger-hover:    #E08C81;
+    --danger-soft:     #2E1A17;
+    --info:            var(--slate-300);
+    --info-soft:       #20303D;
+
+    --highlight: rgba(210, 168, 97, 0.22);
   }
 }
 
+[data-theme="dark"] {
+  --canvas:          var(--stone-950);
+  --surface:         #1E1B15;
+  --surface-sunken:  #161309;
+  --surface-hover:   #26221A;
+  --overlay-scrim:   rgba(0, 0, 0, 0.6);
+
+  --text-strong:     var(--stone-50);
+  --text-body:       var(--stone-150);
+  --text-muted:      var(--stone-400);
+  --text-faint:      var(--stone-500);
+  --text-link:       var(--slate-300);
+
+  --border:          #322D23;
+  --border-strong:   #423B2D;
+  --border-faint:    #28241C;
+
+  --primary:         var(--slate-300);
+  --primary-hover:   var(--slate-200);
+  --primary-active:  var(--slate-100);
+  --primary-soft:    #20303D;
+  --primary-soft-border: #2A3E4F;
+  --on-primary:      var(--stone-950);
+
+  --accent:          var(--clay-400);
+  --accent-hover:    var(--clay-300);
+  --accent-soft:     #2E2018;
+
+  --success:         #7CA886;
+  --success-soft:    #1F2C22;
+  --warning:         #D2A861;
+  --warning-soft:    #2C2615;
+  --danger:          #D27A6F;
+  --danger-hover:    #E08C81;
+  --danger-soft:     #2E1A17;
+  --info:            var(--slate-300);
+  --info-soft:       #20303D;
+
+  --highlight: rgba(210, 168, 97, 0.22);
+}
+
+/* ---- Spacing & sizing tokens ---- */
+:root {
+  --space-0:  0;
+  --space-px: 1px;
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+  --space-32: 8rem;
+
+  --radius-xs:   3px;
+  --radius-sm:   5px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  22px;
+  --radius-pill: 999px;
+  --radius-card: 10px;
+
+  --border-width:       1px;
+  --border-width-thick: 1.5px;
+
+  --measure:          68ch;
+  --measure-narrow:   54ch;
+  --container-prose:  720px;
+  --container-app:    1280px;
+  --container-wide:   1440px;
+
+  --control-height-sm: 32px;
+  --control-height-md: 40px;
+  --control-height-lg: 48px;
+}
+
+/* ---- Elevation tokens ---- */
+:root {
+  --shadow-color: 30 27 18;
+  --shadow-none:  none;
+  --shadow-xs:    0 1px 2px rgba(var(--shadow-color) / 0.06);
+  --shadow-sm:    0 1px 2px rgba(var(--shadow-color) / 0.05),
+                  0 2px 6px rgba(var(--shadow-color) / 0.05);
+  --shadow-md:    0 2px 4px rgba(var(--shadow-color) / 0.04),
+                  0 6px 16px rgba(var(--shadow-color) / 0.07);
+  --shadow-lg:    0 4px 8px rgba(var(--shadow-color) / 0.05),
+                  0 16px 36px rgba(var(--shadow-color) / 0.10);
+  --shadow-xl:    0 8px 16px rgba(var(--shadow-color) / 0.06),
+                  0 28px 60px rgba(var(--shadow-color) / 0.14);
+  --shadow-inset: inset 0 1px 2px rgba(var(--shadow-color) / 0.06);
+
+  --ring-width:  2px;
+  --ring-offset: 2px;
+  --focus-ring:  0 0 0 var(--ring-offset) var(--surface),
+                 0 0 0 calc(var(--ring-offset) + var(--ring-width)) var(--ring);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --shadow-color: 0 0 0;
+    --shadow-sm:    0 1px 2px rgba(0 0 0 / 0.4), 0 2px 6px rgba(0 0 0 / 0.3);
+    --shadow-md:    0 2px 4px rgba(0 0 0 / 0.35), 0 6px 16px rgba(0 0 0 / 0.45);
+    --shadow-lg:    0 4px 8px rgba(0 0 0 / 0.4), 0 16px 36px rgba(0 0 0 / 0.55);
+    --shadow-xl:    0 8px 16px rgba(0 0 0 / 0.45), 0 28px 60px rgba(0 0 0 / 0.6);
+  }
+}
+
+[data-theme="dark"] {
+  --shadow-color: 0 0 0;
+  --shadow-sm:    0 1px 2px rgba(0 0 0 / 0.4), 0 2px 6px rgba(0 0 0 / 0.3);
+  --shadow-md:    0 2px 4px rgba(0 0 0 / 0.35), 0 6px 16px rgba(0 0 0 / 0.45);
+  --shadow-lg:    0 4px 8px rgba(0 0 0 / 0.4), 0 16px 36px rgba(0 0 0 / 0.55);
+  --shadow-xl:    0 8px 16px rgba(0 0 0 / 0.45), 0 28px 60px rgba(0 0 0 / 0.6);
+}
+
+/* ---- Motion tokens ---- */
+:root {
+  --duration-instant: 80ms;
+  --duration-fast:    140ms;
+  --duration-base:    200ms;
+  --duration-slow:    320ms;
+  --duration-slower:  500ms;
+
+  --ease-out:      cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-in-out:   cubic-bezier(0.45, 0.05, 0.25, 0.95);
+  --ease-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+
+  --transition-colors:    color var(--duration-fast) var(--ease-standard),
+                          background-color var(--duration-fast) var(--ease-standard),
+                          border-color var(--duration-fast) var(--ease-standard);
+  --transition-transform: transform var(--duration-base) var(--ease-out);
+  --transition-opacity:   opacity var(--duration-base) var(--ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 0ms;
+    --duration-fast:    0ms;
+    --duration-base:    0ms;
+    --duration-slow:    0ms;
+    --duration-slower:  0ms;
+  }
+}
+
+/* ---- Typography tokens ---- */
+:root {
+  /* Font families — next/font CSS variables injected via layout.tsx */
+  --font-body:    var(--font-ibm-plex-sans), "Noto Sans JP", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-spectral), "Noto Serif JP", Georgia, "Times New Roman", serif;
+  --font-serif:   var(--font-spectral), "Noto Serif JP", Georgia, serif;
+  --font-mono:    var(--font-ibm-plex-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  --weight-light:    300;
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-md:   1.125rem;
+  --text-lg:   1.375rem;
+  --text-xl:   1.75rem;
+  --text-2xl:  2.25rem;
+  --text-3xl:  3rem;
+  --text-4xl:  4rem;
+
+  --leading-tight:   1.1;
+  --leading-snug:    1.25;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.65;
+
+  --tracking-tight:  -0.02em;
+  --tracking-snug:   -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.04em;
+  --tracking-caps:   0.12em;
+}
+
+/* ---- Base element styles ---- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  color: var(--text-body);
+  background-color: var(--canvas);
+  font-weight: var(--weight-regular);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0 0 var(--space-4);
+  color: var(--text-strong);
+  font-weight: var(--weight-medium);
+  line-height: var(--leading-snug);
+  letter-spacing: var(--tracking-snug);
+}
+h1 { font-family: var(--font-display); font-size: var(--text-3xl); line-height: var(--leading-tight); letter-spacing: var(--tracking-tight); }
+h2 { font-family: var(--font-display); font-size: var(--text-2xl); }
+h3 { font-family: var(--font-display); font-size: var(--text-xl); font-weight: var(--weight-medium); }
+h4 { font-size: var(--text-lg); font-weight: var(--weight-semibold); letter-spacing: var(--tracking-normal); }
+h5 { font-size: var(--text-md); font-weight: var(--weight-semibold); letter-spacing: var(--tracking-normal); }
+h6 { font-size: var(--text-sm); font-weight: var(--weight-semibold); letter-spacing: var(--tracking-normal); }
+
+a {
+  color: var(--text-link);
+  text-decoration: none;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  transition: var(--transition-colors);
+}
+a:hover { text-decoration: underline; color: var(--primary-hover); }
+
+::selection { background: var(--slate-200); color: var(--stone-900); }
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+/* ---- Tailwind theme mapping ---- */
+@theme inline {
+  /* Fonts */
+  --font-sans:    var(--font-body);
+  --font-mono:    var(--font-mono);
+  --font-serif:   var(--font-serif);
+  --font-display: var(--font-display);
+
+  /* Surfaces */
+  --color-canvas:         var(--canvas);
+  --color-surface:        var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-hover:  var(--surface-hover);
+
+  /* Text */
+  --color-strong:     var(--text-strong);
+  --color-body:       var(--text-body);
+  --color-muted:      var(--text-muted);
+  --color-faint:      var(--text-faint);
+  --color-link:       var(--text-link);
+  --color-on-primary: var(--on-primary);
+  --color-on-accent:  var(--text-on-accent);
+
+  /* Borders */
+  --color-border:        var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-border-faint:  var(--border-faint);
+
+  /* Interactive */
+  --color-primary:        var(--primary);
+  --color-primary-hover:  var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-primary-soft:   var(--primary-soft);
+
+  /* Accent */
+  --color-accent:      var(--accent);
+  --color-accent-soft: var(--accent-soft);
+
+  /* Feedback */
+  --color-success:      var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning:      var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger:       var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-soft:  var(--danger-soft);
+}
+
+/* ---- Prose color overrides ---- */
+.prose {
+  --tw-prose-body:          var(--text-body);
+  --tw-prose-headings:      var(--text-strong);
+  --tw-prose-links:         var(--text-link);
+  --tw-prose-bold:          var(--text-strong);
+  --tw-prose-counters:      var(--text-muted);
+  --tw-prose-bullets:       var(--border-strong);
+  --tw-prose-hr:            var(--border);
+  --tw-prose-quotes:        var(--text-muted);
+  --tw-prose-quote-borders: var(--border-strong);
+  --tw-prose-code:          var(--text-body);
+  --tw-prose-pre-code:      var(--text-body);
+  --tw-prose-pre-bg:        var(--surface-sunken);
+  --tw-prose-th-borders:    var(--border-strong);
+  --tw-prose-td-borders:    var(--border);
 }
